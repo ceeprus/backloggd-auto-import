@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>BackloggdLogger</RootNamespace>
+    <AssemblyName>BackloggdLogger</AssemblyName>
+    <NoWarn>$(NoWarn);MSB3277</NoWarn>
+    <ApplicationIcon>Assets/app.ico</ApplicationIcon>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="UiCheck" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\BackloggdLogger.Core\BackloggdLogger.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4314.35" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="prefill.js" />
+    <EmbeddedResource Include="match.js" />
+    <EmbeddedResource Include="journal.js" />
+    <EmbeddedResource Include="Assets/app.ico" LogicalName="BackloggdLogger.Assets.app.ico" />
+    <EmbeddedResource Include="Assets/avatar.png" LogicalName="BackloggdLogger.Assets.avatar.png" />
+  </ItemGroup>
+</Project>

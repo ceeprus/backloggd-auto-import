@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/BackloggdLogger.Core/BackloggdLogger.Core.csproj" />
+    <Project Path="src/BackloggdLogger/BackloggdLogger.csproj" />
+  </Folder>
+  <Folder Name="/tools/">
+    <Project Path="tools/UiCheck/UiCheck.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/BackloggdLogger.Core.Tests/BackloggdLogger.Core.Tests.csproj" />
+  </Folder>
+</Solution>
