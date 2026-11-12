@@ -24,3 +24,7 @@ Rating, review, likes and notes are never touched.
 dotnet test
 dotnet publish src/BackloggdLogger -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish
 ```
+
+## License
+
+[MIT](LICENSE)
