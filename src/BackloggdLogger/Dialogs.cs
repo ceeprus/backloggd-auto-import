@@ -697,6 +697,9 @@ sealed class TrackedGamesForm : ThemedWindow
     internal const string TreatAsEmulator = "Treat as emulator";
     internal const string TreatAsOneGame = "Treat as one game";
     internal const string ShowEmulatorsText = "Show emulators";
+    internal const string FilterText = "Filter by name, Backloggd title or source";
+
+    internal static string FilterNoMatch(string filter) => $"Nothing matches \"{filter}\".\nChange or clear the filter.";
 
     // Fixed widths at 96 DPI; Name and Source share what is left.
     const int IconWidth = 32;
@@ -712,6 +715,10 @@ sealed class TrackedGamesForm : ThemedWindow
     readonly FramePanel _frame;
     readonly EmptyState _empty = new(Theme.SurfaceAlt, "Track a running game...") { Dock = DockStyle.Fill, Visible = false };
     readonly ThemedCheck _showEmulators = new(ShowEmulatorsText);
+    readonly ThemedInput _filter = new(FilterText, FilterText);
+
+    // The selected game while the filter hides it, so clearing the filter selects it again.
+    string? _hiddenSelection;
     readonly List<ThemedButton> _actions = new();
 
     // Actions that make sense only for a game: an emulator row has no Backloggd page or status.
@@ -749,6 +756,10 @@ sealed class TrackedGamesForm : ThemedWindow
         _showEmulators.Margin = new Padding(Theme.S3, 0, 0, Theme.S3);
         _showEmulators.Checked = View.ShowEmulators;
         root.Controls.Add(_showEmulators, 1, 0);
+        _filter.Dock = DockStyle.Fill;
+        _filter.Margin = Inset(Theme.S2);
+        AddRow(root, _filter);
+        root.SetColumnSpan(_filter, 2);
 
         // The list adds one pixel under the image, so 31 gives the 32 px row.
         _rows = new ImageList { ImageSize = new Size(1, Px(32) - 1) };
@@ -788,13 +799,16 @@ sealed class TrackedGamesForm : ThemedWindow
         ActiveControl = _list;
         // Reading order: the header's check, then the list, then the actions.
         _showEmulators.TabIndex = 0;
-        _frame.TabIndex = 1;
-        _bar.TabIndex = 2;
+        _filter.TabIndex = 1;
+        _frame.TabIndex = 2;
+        _bar.TabIndex = 3;
 
         BuildHeaderMenu();
         BuildRowMenu();
 
         _showEmulators.CheckedChanged += (_, _) => SetShowEmulators(_showEmulators.Checked);
+        _filter.Box.TextChanged += (_, _) => Refill(reveal: true);
+        _filter.Box.KeyDown += OnFilterKey;
         _list.DrawColumnHeader += DrawHeader;
         _list.DrawItem += (_, e) => e.DrawDefault = false;
         _list.DrawSubItem += DrawCell;
@@ -1151,7 +1165,8 @@ sealed class TrackedGamesForm : ThemedWindow
         var view = View;
         var cmp = StringComparer.CurrentCultureIgnoreCase;
         var desc = view.SortDescending;
-        var all = _state.Games.Values.Where(g => view.ShowEmulators || !g.IsEmulator);
+        var f = _filter.Box.Text.Trim();
+        var all = _state.Games.Values.Where(g => (view.ShowEmulators || !g.IsEmulator) && (f.Length == 0 || Matches(g, f)));
         IOrderedEnumerable<GameRecord> By<T>(Func<GameRecord, T> key, IComparer<T>? c = null) =>
             desc ? all.OrderByDescending(key, c) : all.OrderBy(key, c);
         var sorted = view.SortColumn switch
@@ -1167,11 +1182,30 @@ sealed class TrackedGamesForm : ThemedWindow
         return sorted.ThenBy(g => g.DisplayName, cmp);
     }
 
+    static bool Matches(GameRecord g, string f) =>
+        g.DisplayName.Contains(f, StringComparison.CurrentCultureIgnoreCase)
+        || (Matched(g)?.Contains(f, StringComparison.CurrentCultureIgnoreCase) ?? false)
+        || Source(g).Contains(f, StringComparison.CurrentCultureIgnoreCase);
+
+    // Down and Up in the filter move the selection, so a match can be picked without leaving the box.
+    void OnFilterKey(object? sender, KeyEventArgs e)
+    {
+        if (e.KeyCode is not (Keys.Down or Keys.Up) || _list.Items.Count == 0) return;
+        var i = _list.SelectedIndices.Count > 0 ? _list.SelectedIndices[0] : -1;
+        var next = e.KeyCode == Keys.Down ? Math.Min(i + 1, _list.Items.Count - 1) : Math.Max(i - 1, 0);
+        _list.SelectedIndices.Clear();
+        _list.Items[next].Selected = true;
+        _list.Items[next].Focused = true;
+        _list.Items[next].EnsureVisible();
+        e.Handled = true;
+        e.SuppressKeyPress = true;
+    }
+
     // reveal scrolls the selected row into view; refills from outside (a session ended, the window
     // was activated) keep the scroll position the user chose.
     public void Refill(bool reveal = false)
     {
-        var selectedId = Selected?.Id;
+        var selectedId = Selected?.Id ?? _hiddenSelection;
         var top = _list.TopItem?.Index ?? 0;
         if (_showEmulators.Checked != View.ShowEmulators) _showEmulators.Checked = View.ShowEmulators;
         var rows = Sorted().Select(g => new ListViewItem(_columns.Select(c => Cell(g, c)).ToArray()) { Tag = g }).ToArray();
@@ -1180,7 +1214,9 @@ sealed class TrackedGamesForm : ThemedWindow
         {
             _list.Items.Clear();
             _list.Items.AddRange(rows);
-            if (rows.FirstOrDefault(i => ((GameRecord)i.Tag!).Id == selectedId) is { } item) { item.Selected = true; item.Focused = true; }
+            var item = rows.FirstOrDefault(i => ((GameRecord)i.Tag!).Id == selectedId);
+            if (item is not null) { item.Selected = true; item.Focused = true; }
+            _hiddenSelection = item is null ? selectedId : null;
         }
         finally { _list.EndUpdate(); }
         // After EndUpdate: inside an update the list can't scroll to a row near the end.
@@ -1188,8 +1224,10 @@ sealed class TrackedGamesForm : ThemedWindow
         if (reveal && _list.SelectedItems.Count > 0) _list.SelectedItems[0].EnsureVisible();
         _hot = -1;
         var empty = _list.Items.Count == 0;
+        var filter = _filter.Box.Text.Trim();
         _empty.Message = _state.Games.Count == 0
             ? "No games yet. Play a Steam game, or use Track a running game for others."
+            : filter.Length > 0 ? FilterNoMatch(filter)
             : "Only emulators are tracked. Turn on Show emulators to see them.";
         _empty.Visible = empty;
         if (_empty.Action is { } track) track.Visible = _state.Games.Count == 0;
@@ -1197,6 +1235,7 @@ sealed class TrackedGamesForm : ThemedWindow
         _bar.Visible = !empty;
         // With no games at all there is nothing to show or hide.
         _showEmulators.Visible = _state.Games.Count > 0;
+        _filter.Visible = _state.Games.Count > 0;
         FitList();
         MeasureColumns();
         UpdateActions();
