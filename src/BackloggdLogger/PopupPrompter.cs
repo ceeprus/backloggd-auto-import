@@ -35,6 +35,8 @@ sealed class PopupPrompter : IPrompter
 
     public Action<string>? OpenFolder { get; set; }
 
+    public Action<string>? OpenBackloggd { get; set; }
+
     // A Mark as choice the close popup was left with: the app saves it by itself.
     public Action<string, StatusPick>? KeepPick { get; set; }
 
@@ -85,6 +87,20 @@ sealed class PopupPrompter : IPrompter
         Show(new MissedPopup { GameId = g.Id, Kind = MissedKind.Notice, Title = JournalFailedTitle(g.DisplayName), Body = body, Action = MissedAction.OpenLog }, again: false);
 
     internal static string JournalFailedTitle(string game) => $"Couldn't add play time to Backloggd for {game}";
+
+    public void NotifySignIn() =>
+        Show(new MissedPopup { Kind = MissedKind.Notice, Title = SignInTitle, Body = SignInBody, Action = MissedAction.SignIn }, again: false);
+
+    internal const string SignInTitle = "Sign in to Backloggd";
+
+    internal const string SignInBody = "Play time and Mark as choices are saved to Backloggd once you're signed in.";
+
+    public void NotifyUpdate(Version latest, Version current, string url) =>
+        Show(new MissedPopup { Kind = MissedKind.Notice, Title = UpdateTitle(latest), Body = UpdateBody(current), Action = MissedAction.OpenUrl, ActionPath = url }, again: false);
+
+    internal static string UpdateTitle(Version latest) => $"Backloggd Logger {latest.ToString(3)} is available";
+
+    internal static string UpdateBody(Version current) => $"You have {current.ToString(3)}.";
 
     public void NotifyJournalPaused() =>
         Show(new MissedPopup { Kind = MissedKind.Notice, Title = JournalPausedTitle, Body = JournalPausedBody }, again: false);
@@ -174,6 +190,8 @@ sealed class PopupPrompter : IPrompter
                 var buttons = new List<(string, Action?)>();
                 if (m.Action == MissedAction.OpenLog && m.GameId is { } game) buttons.Add(("Open log", () => Run(OpenLog, game)));
                 else if (m.Action == MissedAction.OpenFolder && m.ActionPath is { } file) buttons.Add(("Open folder", () => Run(OpenFolder, file)));
+                else if (m.Action == MissedAction.SignIn) buttons.Add(("Sign in", () => Run(OpenBackloggd, "")));
+                else if (m.Action == MissedAction.OpenUrl && m.ActionPath is { } url) buttons.Add(("Download", () => Run(SettingsForm.OpenUrl, Releases.SafeUrl(url))));
                 buttons.Add(("Close", null));
                 popup = new PromptPopup(m.Title, m.Body, buttons, again ? null : NoticeTimeout, corner: settings.PopupCorner, notice: true, onEnded: ended);
                 break;

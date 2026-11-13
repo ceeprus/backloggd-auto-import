@@ -60,6 +60,29 @@ public static class LauncherGames
         return new LauncherGame(GameIds.Gog(id.Trim()), Value("gameName") ?? Path.GetFileNameWithoutExtension(exe), exe);
     }
 
+    // One Windows uninstall entry that Battle.net installed (its uninstaller is Blizzard's, with --uid=<game>). The
+    // entry names only a launcher stub, so every exe under the install folder that isn't a launcher or a
+    // tool counts as the game: one LauncherGame per exe, all with the game's id.
+    public static IReadOnlyList<LauncherGame> BattleNet(string key, IReadOnlyDictionary<string, string?> values, Func<string, IEnumerable<string>> exesUnder)
+    {
+        string? Value(string name) => values.TryGetValue(name, out var v) && !string.IsNullOrWhiteSpace(v) ? v.Trim() : null;
+        var uninstall = Value("UninstallString");
+        if (uninstall is null || !uninstall.Contains("Blizzard Uninstaller.exe", StringComparison.OrdinalIgnoreCase)) return [];
+        var uid = System.Text.RegularExpressions.Regex.Match(uninstall, @"--uid=""?([^""\s]+)").Groups[1].Value;
+        if (uid.Length == 0 || uid.Equals("battle.net", StringComparison.OrdinalIgnoreCase)) return [];
+        if (Value("InstallLocation") is not { } folder || Normalize(folder) is not { } root) return [];
+        var name = Value("DisplayName") ?? key.Trim();
+        return exesUnder(root).Where(IsGameExe).Select(exe => new LauncherGame(GameIds.BattleNet(uid), name, exe)).ToList();
+    }
+
+    static readonly string[] ToolWords = { "launcher", "battle.net", "crash", "error", "updater", "update", "uninstall", "agent", "browser", "redist", "setup", "helper", "report", "repair" };
+
+    static bool IsGameExe(string exe)
+    {
+        var file = Path.GetFileNameWithoutExtension(exe);
+        return !ToolWords.Any(w => file.Contains(w, StringComparison.OrdinalIgnoreCase));
+    }
+
     // The exe of a launch command: the quoted part, or everything up to the first ".exe".
     static string? CommandExe(string? command)
     {

@@ -28,7 +28,7 @@ sealed class JournalSync : IDisposable
     // False until the startup cache clean-up has finished with the browser profile.
     internal Func<bool> Ready { get; set; } = () => StorageCaps.Finished;
 
-    // How one job runs; UiCheck swaps in a fake, so no WebView2 starts there.
+    // How one job runs; the test harness swaps in a fake, so no WebView2 starts there.
     internal Func<JournalJob, Func<bool>, Func<int, string?, bool>, Task<JournalOutcome>> Runner { get; set; }
 
     internal Func<StatusJob, Func<bool>, Task<JournalOutcome>> StatusRunner { get; set; }
@@ -138,6 +138,7 @@ sealed class JournalSync : IDisposable
                 outcome = JournalOutcome.Failed("error");
             }
             if (_disposed) return;
+            CheckSignedOut(outcome);
             if (outcome.Activated || outcome.Step == "activated")
             {
                 Paused = true;
@@ -149,6 +150,20 @@ sealed class JournalSync : IDisposable
             catch (Exception ex) { Log.Write("errors", "journal changed: " + ex); }
         }
         finally { _running = false; }
+    }
+
+    // Told once per run: every hidden save fails the same way until the user signs in.
+    public Action? SignedOut { get; set; }
+
+    bool _toldSignedOut;
+
+    public void SignInAsked() => _toldSignedOut = true;
+
+    void CheckSignedOut(JournalOutcome outcome)
+    {
+        if (outcome.Step != "signed out" || _toldSignedOut) return;
+        _toldSignedOut = true;
+        SignedOut?.Invoke();
     }
 
     const int MaxCookieTries = 3;
@@ -201,6 +216,7 @@ sealed class JournalSync : IDisposable
                 outcome = JournalOutcome.Failed("error");
             }
             if (_disposed) return;
+            CheckSignedOut(outcome);
             if (outcome.Activated || outcome.Step == "activated")
             {
                 Paused = true;

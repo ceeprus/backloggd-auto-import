@@ -190,15 +190,20 @@ sealed class SettingsForm : ThemedWindow
         };
         link.LinkClicked += (_, _) =>
         {
-            try { if (OpenUrlOverride is { } open) open(url); else System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
-            catch (Exception ex) { Log.Write("errors", "open link: " + ex.Message); }
+            OpenUrl(url);
         };
         return link;
     }
 
+    internal static void OpenUrl(string url)
+    {
+        try { if (OpenUrlOverride is { } open) open(url); else System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+        catch (Exception ex) { Log.Write("errors", "open link: " + ex.Message); }
+    }
+
     public static string VersionText => "Version " + (typeof(SettingsForm).Assembly.GetName().Version?.ToString(3) ?? "unknown");
 
-    public const string DetectLaunchersText = "Detect Epic and GOG games";
+    public const string DetectLaunchersText = "Detect Epic, GOG and Battle.net games";
 
     public const string BlockAdsText = "Block ads in the Backloggd window";
 

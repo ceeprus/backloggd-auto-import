@@ -299,6 +299,10 @@ public sealed class AppState
     public Dictionary<string, GameRecord> Games { get; set; } = new();
     public bool PromptsPaused { get; set; }
 
+    // The newest release the user was told about, so each version is announced once.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+    public string? UpdateNotified { get; set; }
+
     // False in a file written before the journal existed; see UpgradeJournal.
     public bool JournalBaselined { get; set; }
 
@@ -381,9 +385,11 @@ public static class GameIds
     public static string Gog(string gameId) => "gog:" + gameId;
     public static bool IsEpic(string id) => id.StartsWith("epic:", StringComparison.Ordinal);
     public static bool IsGog(string id) => id.StartsWith("gog:", StringComparison.Ordinal);
+    public static string BattleNet(string uid) => "bnet:" + uid;
+    public static bool IsBattleNet(string id) => id.StartsWith("bnet:", StringComparison.Ordinal);
 
     // The launcher a game was found through, as the Source column names it; null for the rest.
-    public static string? Launcher(string id) => IsEpic(id) ? "Epic" : IsGog(id) ? "GOG" : null;
+    public static string? Launcher(string id) => IsEpic(id) ? "Epic" : IsGog(id) ? "GOG" : IsBattleNet(id) ? "Battle.net" : null;
 
     // "emu:<exe path>|<name>": the same game in the same emulator is one id across runs, whatever
     // its title's case or punctuation. A Windows path never contains '|'.

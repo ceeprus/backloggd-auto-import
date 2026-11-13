@@ -22,6 +22,8 @@ sealed class TrayContext : ApplicationContext
 
     public TrayContext()
     {
+        // No browser profile yet: the Backloggd window was never opened, so nobody signed in.
+        var firstRun = !Directory.Exists(Paths.WebViewData);
         try { _state = _store.Load(); }
         catch (Exception ex)
         {
@@ -39,6 +41,7 @@ sealed class TrayContext : ApplicationContext
             Forget = id => _state.MissedPopups.Remove(id),
             OpenLog = OpenLogFor,
             OpenFolder = ShowInFolder,
+            OpenBackloggd = _ => _windows!.OpenBrowse(),
             KeepPick = KeepPickFor,
         };
         _state.MissedPopups.Changed += MissedChanged;
@@ -67,6 +70,7 @@ sealed class TrayContext : ApplicationContext
             StatusSaved = _prompter.NotifyStatusSaved,
             StatusFailed = _prompter.NotifyStatusFailed,
             StatusExpired = _prompter.NotifyStatusExpired,
+            SignedOut = _prompter.NotifySignIn,
         };
         _coordinator.JournalDue += _ => _journal.Kick();
         _tray = new NotifyIcon { Icon = AppAssets.TrayIcon, Text = TrayText(), Visible = true, ContextMenuStrip = BuildMenu() };
@@ -76,6 +80,13 @@ sealed class TrayContext : ApplicationContext
         if (_store.LoadFailed)
             _prompter.NotifyFolder(LoadFailedNotice, Paths.State);
         _watcher.Start();
+        _updates = new UpdateCheck(_state, () => _watcher.AnyGameRunning || _state.PromptsPaused, _prompter.NotifyUpdate, Save);
+        _updates.Start();
+        if (firstRun)
+        {
+            _journal.SignInAsked();
+            _prompter.NotifySignIn();
+        }
         Microsoft.Win32.SystemEvents.SessionEnding += OnSessionEnding;
         // Anything left from the last run goes once nothing else is going on.
         _journal.Kick();
@@ -290,6 +301,7 @@ sealed class TrayContext : ApplicationContext
     }
 
     bool _shutDown;
+    UpdateCheck? _updates;
 
     // Exit, or Windows signing out or shutting down, which would kill the app with a game still running.
     void Shutdown()
@@ -308,6 +320,7 @@ sealed class TrayContext : ApplicationContext
         _missed?.Close();
         _settings?.Close();
         _watcher.Dispose();
+        _updates?.Dispose();
         _journal.Dispose();
         _windows.Dispose();
         ExitThread();

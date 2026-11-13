@@ -5,7 +5,7 @@ namespace BackloggdLogger;
 
 interface ILauncherSource
 {
-    // The games the Epic Games Launcher and GOG Galaxy have installed whose exe is on disk.
+    // The games the Epic Games Launcher, GOG Galaxy and Battle.net have installed whose exe is on disk.
     IReadOnlyList<LauncherGame> Installed();
 }
 
@@ -42,6 +42,7 @@ sealed class InstalledLauncherGames : ILauncherSource
         var games = new List<LauncherGame>();
         Read("Epic", () => ReadEpic(games));
         Read("GOG", () => ReadGog(games));
+        Read("Battle.net", () => ReadBattleNet(games));
         return _games = games;
     }
 
@@ -81,6 +82,37 @@ sealed class InstalledLauncherGames : ILauncherSource
             }
             if (LauncherGames.Epic(text, File.Exists) is { } game) games.Add(game);
         }
+    }
+
+    static readonly string[] UninstallKeys =
+    {
+        @"SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
+        @"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall",
+    };
+
+    static void ReadBattleNet(List<LauncherGame> games)
+    {
+        foreach (var path in UninstallKeys)
+        {
+            using var root = Registry.LocalMachine.OpenSubKey(path);
+            if (root is null) continue;
+            foreach (var name in root.GetSubKeyNames())
+            {
+                using var key = root.OpenSubKey(name);
+                if (key?.GetValue("UninstallString") is not string uninstall || !uninstall.Contains("Blizzard Uninstaller.exe", StringComparison.OrdinalIgnoreCase)) continue;
+                var values = key.GetValueNames().ToDictionary(n => n, n => key.GetValue(n)?.ToString(), StringComparer.OrdinalIgnoreCase);
+                games.AddRange(LauncherGames.BattleNet(name, values, ExesUnder));
+            }
+        }
+    }
+
+    // The install folder and two levels below it (Overwatch keeps its exe in _retail_, StarCraft II in
+    // Versions\Base<n>), at most 40 exes, so a big game folder is never walked in full.
+    static IEnumerable<string> ExesUnder(string folder)
+    {
+        if (!Directory.Exists(folder)) return [];
+        var options = new EnumerationOptions { RecurseSubdirectories = true, MaxRecursionDepth = 2, IgnoreInaccessible = true };
+        return Directory.EnumerateFiles(folder, "*.exe", options).Take(40).ToList();
     }
 
     static void ReadGog(List<LauncherGame> games)

@@ -8,7 +8,7 @@ namespace BackloggdLogger;
 // Anything that fails is null, and the row draws the placeholder.
 sealed partial class GameIcons : IDisposable
 {
-    // UiCheck points this at a Steam folder of its own; the app reads Steam's path from the registry.
+    // The test harness points this at a Steam folder of its own; the app reads Steam's path from the registry.
     internal static string? SteamRootOverride { get; set; }
 
     readonly Dictionary<string, Image?> _cache = new();

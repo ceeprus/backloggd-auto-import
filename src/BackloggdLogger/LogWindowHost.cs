@@ -22,14 +22,14 @@ sealed class LogWindowHost : ILogOpener, IDisposable
     bool _openIsBrowse;
     Action? _nextUserWindow;
 
-    // How a new window is shown; UiCheck records it instead, so WebView2 never starts there.
+    // How a new window is shown; the test harness records it instead, so WebView2 never starts there.
     internal Action<LogWindow> ShowWindow { get; set; } = w =>
     {
         w.Show();
         w.Activate();
     };
 
-    // SHQueryUserNotificationState; UiCheck sets both answers.
+    // SHQueryUserNotificationState; the test harness sets both answers.
     internal Func<bool> ScreenBusy { get; set; } = Fullscreen.IsBusy;
 
     public LogWindowHost(AppState state, Action save, Func<bool> anyGameRunning)

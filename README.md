@@ -11,7 +11,7 @@ Windows tray app. Logs the games you play on [Backloggd](https://backloggd.com) 
 ## Use
 
 1. Tray > **Open Backloggd window** and sign in.
-2. Play. Steam, Epic, GOG and emulator games are detected. Add anything else with tray > **Track a running game...**
+2. Play. Steam, Epic, GOG, Battle.net and emulator games are detected. Add anything else with tray > **Track a running game...**
 3. When a game closes, a popup offers **Open log** (log box with status and dates filled in) or **Mark as** (status only).
 
 ## Saved without asking

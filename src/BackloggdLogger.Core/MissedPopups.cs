@@ -5,7 +5,7 @@ namespace BackloggdLogger.Core;
 public enum MissedKind { Start, AfterClose, Status, Notice }
 
 // What a notice's first button did, so the same notice can be shown again after a restart.
-public enum MissedAction { None, OpenLog, OpenFolder }
+public enum MissedAction { None, OpenLog, OpenFolder, OpenUrl, SignIn }
 
 // A popup that went away without an answer: it timed out, a fullscreen game hid it, or the app
 // closed it. It holds what the popup showed and what its buttons need to work again.

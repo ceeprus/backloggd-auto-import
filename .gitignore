@@ -2,7 +2,4 @@ bin/
 obj/
 .vs/
 *.user
-.superpowers/
-.claude/
 publish/
-tools/UiCheck/out/
