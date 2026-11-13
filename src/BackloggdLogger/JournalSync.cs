@@ -80,8 +80,6 @@ sealed class JournalSync : IDisposable
         _statuses.Kick();
     }
 
-    internal bool StatusDue => _statuses.Due;
-
     // A Mark as choice left on the close popup: saved at the next chance (a game with a match), or
     // kept until the game is matched.
     public PickKept KeepPick(string gameId, StatusPick pick) => _statuses.Keep(gameId, pick);

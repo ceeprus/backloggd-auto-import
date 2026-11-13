@@ -846,8 +846,6 @@ sealed class TrackedGamesForm : ThemedWindow
 
     TrackedColumn ColumnAt(int index) => index >= 0 && index < _columns.Count ? _columns[index] : TrackedColumn.Name;
 
-    internal string CellText(ListViewItem item, TrackedColumn c) => ColumnIndex(c) is var i and >= 0 ? item.SubItems[i].Text : "";
-
     void BuildColumns()
     {
         var view = View;

@@ -97,7 +97,7 @@ public class AdHostsTests
     [Fact]
     public void SlotCssHidesOnlyTheEmptyAdSlotSelectors()
     {
-        Assert.Equal(new[] { "[id^=\"div-gpt-ad\"]", ".adsbygoogle", "[data-ad-slot]", "iframe[src*=\"googlesyndication\"]" }, AdHosts.SlotSelectors);
+        Assert.Equal(new[] { "[id^=\"div-gpt-ad\"]", ".adsbygoogle", "[data-ad-slot]", "iframe[src*=\"googlesyndication\"]", ".prosper-adframe" }, AdHosts.SlotSelectors);
         Assert.Contains("display: none !important", AdHosts.SlotCss, StringComparison.Ordinal);
     }
 }

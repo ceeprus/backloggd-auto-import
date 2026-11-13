@@ -89,9 +89,9 @@ sealed class SettingsForm : ThemedWindow
         Group("App");
         Wide(_startup);
         Wide(_paused);
-        var version = Caption(VersionText, Theme.TextSubtle, Theme.FocusPad);
-        version.Margin = new Padding(Theme.FocusPad, Theme.S3, Theme.FocusPad, 0);
-        Wide(version);
+
+        Group("About");
+        Wide(About());
 
         AddRow(_root, _grid);
 
@@ -117,6 +117,81 @@ sealed class SettingsForm : ThemedWindow
         _paused.Checked = promptsPaused;
         _startup.Checked = startWithWindows;
         EndBuild();
+    }
+
+    public const string RepoUrl = "https://github.com/ceeprus/backloggd-auto-import";
+    public const string XUrl = "https://x.com/Ceeprus";
+
+    // Name and version with the links on the left, the app's picture on the right.
+    static TableLayoutPanel About()
+    {
+        var about = new TableLayoutPanel
+        {
+            ColumnCount = 2,
+            RowCount = 1,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Dock = DockStyle.Fill,
+            BackColor = Theme.Surface,
+            Margin = new Padding(0),
+            Padding = new Padding(0),
+        };
+        about.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        about.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        var text = new FlowLayoutPanel
+        {
+            FlowDirection = FlowDirection.TopDown,
+            WrapContents = false,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            BackColor = Theme.Surface,
+            Margin = new Padding(0),
+            Padding = new Padding(0),
+        };
+        text.Controls.Add(new Label
+        {
+            Text = "Backloggd Logger",
+            ForeColor = Theme.Text,
+            AutoSize = true,
+            Margin = new Padding(Theme.FocusPad, 0, Theme.FocusPad, 0),
+        });
+        text.Controls.Add(Caption(VersionText, Theme.TextSubtle, Theme.FocusPad, Theme.S2));
+        text.Controls.Add(Link("GitHub", RepoUrl));
+        text.Controls.Add(Link("X (@Ceeprus)", XUrl));
+        about.Controls.Add(text, 0, 0);
+        about.Controls.Add(new PictureBox
+        {
+            Image = AppAssets.Avatar,
+            SizeMode = PictureBoxSizeMode.Zoom,
+            Size = new Size(72, 72),
+            BackColor = Theme.Surface,
+            Anchor = AnchorStyles.Top | AnchorStyles.Right,
+            Margin = new Padding(Theme.S3, 0, Theme.FocusPad, 0),
+            AccessibleName = "Backloggd Logger icon",
+        }, 1, 0);
+        return about;
+    }
+
+    static LinkLabel Link(string text, string url)
+    {
+        var link = new LinkLabel
+        {
+            Text = text,
+            AutoSize = true,
+            BackColor = Theme.Surface,
+            LinkColor = Theme.Link,
+            ActiveLinkColor = Theme.Link,
+            VisitedLinkColor = Theme.Link,
+            LinkBehavior = LinkBehavior.HoverUnderline,
+            Margin = new Padding(Theme.FocusPad, 0, Theme.FocusPad, Theme.S1),
+            AccessibleDescription = url,
+        };
+        link.LinkClicked += (_, _) =>
+        {
+            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+            catch (Exception ex) { Log.Write("errors", "open link: " + ex.Message); }
+        };
+        return link;
     }
 
     public static string VersionText => "Version " + (typeof(SettingsForm).Assembly.GetName().Version?.ToString(3) ?? "unknown");

@@ -329,6 +329,7 @@ sealed partial class LogWindow : ThemedWindow
             e.Handled = true;
             if (IsBackloggd(e.Uri)) core.Navigate(e.Uri);
         };
+        await SiteFixes.AttachAsync(core);
         if (BlockAds) _ads = await AdBlock.AttachAsync(core);
 
         Mark("navigate");

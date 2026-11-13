@@ -8,20 +8,21 @@ enum ButtonKind { Primary, Secondary, Danger, Ghost }
 
 static class Theme
 {
-    public static readonly Color Surface = Hex("#0f1115");
-    public static readonly Color SurfaceAlt = Hex("#181b22");
-    public static readonly Color Raised = Hex("#232835");
-    public static readonly Color Highlight = Hex("#364058");
-    public static readonly Color Border = Hex("#2c3241");
-    public static readonly Color BorderStrong = Hex("#5f6e8a");
-    public static readonly Color Text = Hex("#f2f4f8");
-    public static readonly Color TextMuted = Hex("#c8ced9");
-    public static readonly Color TextSubtle = Hex("#a7b0bf");
+    public static readonly Color Surface = Hex("#16181c");
+    public static readonly Color SurfaceAlt = Hex("#242832");
+    public static readonly Color Raised = Hex("#30394c");
+    public static readonly Color Highlight = Hex("#3f4b64");
+    public static readonly Color Border = Hex("#3b414e");
+    public static readonly Color BorderStrong = Hex("#6b7a96");
+    public static readonly Color Text = Hex("#FFFFFF");
+    public static readonly Color TextMuted = Hex("#cbd4dc");
+    public static readonly Color TextSubtle = Hex("#a3aeb8");
     public static readonly Color Accent = Hex("#D63370");
     public static readonly Color AccentHover = Hex("#CF2F6B");
     public static readonly Color AccentPressed = Hex("#BF2860");
-    public static readonly Color Focus = Hex("#58A6FF");
+    public static readonly Color Focus = Hex("#839df9");
     public static readonly Color Danger = Hex("#FF7B72");
+    public static readonly Color Link = Hex("#fc6399");
 
     public static readonly Color StatusPlayed = Hex("#ea377a");
     public static readonly Color StatusCompleted = Hex("#43b94f");
@@ -34,8 +35,7 @@ static class Theme
     public static readonly Font Caption = new("Segoe UI", 8.25f);
     public static readonly Font ButtonFont = new("Segoe UI", 9.5f);
 
-    public const int ControlRadius = 8;
-    public const int WindowRadius = 8;
+    public const int ControlRadius = 6;
     public const int S1 = 4;
     public const int S2 = 8;
     public const int S3 = 12;
@@ -755,6 +755,12 @@ sealed class DarkMenuRenderer : ToolStripProfessionalRenderer
         }
         InkCentres[key] = y;
         return y;
+    }
+
+    protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
+    {
+        e.ArrowColor = e.Item?.Enabled == false ? Theme.TextSubtle : Theme.TextMuted;
+        base.OnRenderArrow(e);
     }
 
     protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)

@@ -79,6 +79,7 @@ public static class AdHosts
         ".adsbygoogle",
         "[data-ad-slot]",
         "iframe[src*=\"googlesyndication\"]",
+        ".prosper-adframe",
     };
 
     // Hides the slots blocked ads leave empty; nothing of Backloggd's own UI.
