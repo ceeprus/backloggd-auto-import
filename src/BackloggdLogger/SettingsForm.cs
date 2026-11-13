@@ -172,6 +172,8 @@ sealed class SettingsForm : ThemedWindow
         return about;
     }
 
+    internal static Action<string>? OpenUrlOverride;
+
     static LinkLabel Link(string text, string url)
     {
         var link = new LinkLabel
@@ -188,7 +190,7 @@ sealed class SettingsForm : ThemedWindow
         };
         link.LinkClicked += (_, _) =>
         {
-            try { System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
+            try { if (OpenUrlOverride is { } open) open(url); else System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(url) { UseShellExecute = true }); }
             catch (Exception ex) { Log.Write("errors", "open link: " + ex.Message); }
         };
         return link;
