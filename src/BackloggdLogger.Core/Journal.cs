@@ -123,11 +123,6 @@ public sealed class JournalRun
 
     int? _committing;
 
-    public void Pressing(int target) => PressedTarget = target;
-
-    // The page said Save was not pressed (it refused before clicking).
-    public void NotPressed() => PressedTarget = null;
-
     // The page is being asked to press Save. Until it answers, the run may end (a deadline, focus,
     // a browser crash), and then Save may have been pressed: the target is kept.
     public void Committing(int target) => _committing = target;

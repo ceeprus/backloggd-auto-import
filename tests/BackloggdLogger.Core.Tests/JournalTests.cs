@@ -455,7 +455,8 @@ public class JournalTests : IDisposable
     public void After_save_is_pressed_every_outcome_but_saved_carries_the_target(JournalOutcomeKind kind)
     {
         var run = new JournalRun();
-        run.Pressing(330);
+        run.Committing(330);
+        run.Answered(pressed: true);
         var outcome = run.Close(new JournalOutcome(kind, kind == JournalOutcomeKind.Failed ? "save response" : null));
         Assert.Equal(JournalOutcomeKind.Failed, outcome.Kind);
         Assert.Equal(330, outcome.Target);
@@ -467,7 +468,8 @@ public class JournalTests : IDisposable
     public void After_save_is_pressed_a_confirmed_save_stays_saved_and_activation_is_kept()
     {
         var run = new JournalRun();
-        run.Pressing(330);
+        run.Committing(330);
+        run.Answered(pressed: true);
         Assert.Equal(JournalOutcome.Saved(330), run.Close(JournalOutcome.Saved(330)));
         Assert.True(run.Close(JournalOutcome.Failed("activated") with { Activated = true }).Activated);
     }
@@ -476,8 +478,8 @@ public class JournalTests : IDisposable
     public void A_save_the_page_refused_to_press_carries_no_target()
     {
         var run = new JournalRun();
-        run.Pressing(330);
-        run.NotPressed();
+        run.Committing(330);
+        run.Answered(pressed: false);
         Assert.Equal(JournalOutcome.Failed("guard"), run.Close(JournalOutcome.Failed("guard")));
         Assert.Equal(JournalOutcome.Stopped, new JournalRun().Close(JournalOutcome.Stopped));
     }
@@ -492,7 +494,8 @@ public class JournalTests : IDisposable
         var job = s.Next(Clear)!;
         s.Prepare(job, 330);
         var run = new JournalRun();
-        run.Pressing(330);
+        run.Committing(330);
+        run.Answered(pressed: true);
         s.Finish(job, run.Close(JournalOutcome.Stopped));
         s.Kick();
         Assert.Equal(330, s.Next(Clear)!.Already);

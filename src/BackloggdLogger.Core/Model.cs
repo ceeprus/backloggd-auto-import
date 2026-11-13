@@ -473,7 +473,4 @@ public sealed class MarkAsChoice
         _on[(int)s] = !_on[(int)s];
         _touched[(int)s] = true;
     }
-
-    public LogRequest ToRequest(GameRecord g, DateOnly today) =>
-        Actions.MarkAs(g, Status, Sent(Shelf.Playing), Sent(Shelf.Backlog), Sent(Shelf.Wishlist), today);
 }

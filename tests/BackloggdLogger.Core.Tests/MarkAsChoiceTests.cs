@@ -7,6 +7,10 @@ public class MarkAsChoiceTests
     static readonly DateOnly Today = new(2026, 11, 8);
     static GameRecord G() => new() { Id = "steam:1", DisplayName = "FEZ", Status = GameStatus.Playing };
 
+    // What the close popup hands on (PromptPopup.Selection, then Coordinator.MarkAs).
+    static LogRequest Request(MarkAsChoice c) =>
+        Actions.MarkAs(G(), c.Status, c.Sent(Shelf.Playing), c.Sent(Shelf.Backlog), c.Sent(Shelf.Wishlist), Today);
+
     [Fact]
     public void Starts_with_playing_on_and_nothing_changed()
     {
@@ -24,7 +28,7 @@ public class MarkAsChoiceTests
         var c = new MarkAsChoice();
         c.Pick(PlayedStatus.Completed);
         Assert.True(c.Changed);
-        Assert.Equal(new LogRequest("steam:1", PlayedStatus.Completed, false, null, null, null, Today), c.ToRequest(G(), Today));
+        Assert.Equal(new LogRequest("steam:1", PlayedStatus.Completed, false, null, null, null, Today), Request(c));
     }
 
     [Fact]
@@ -32,7 +36,7 @@ public class MarkAsChoiceTests
     {
         var c = new MarkAsChoice();
         c.Toggle(Shelf.Backlog);
-        Assert.Equal(new LogRequest("steam:1", null, null, true, null, null, null), c.ToRequest(G(), Today));
+        Assert.Equal(new LogRequest("steam:1", null, null, true, null, null, null), Request(c));
     }
 
     [Fact]
@@ -42,7 +46,7 @@ public class MarkAsChoiceTests
         c.Toggle(Shelf.Wishlist);
         c.Toggle(Shelf.Wishlist);
         c.Pick(PlayedStatus.Shelved);
-        Assert.Equal(new LogRequest("steam:1", PlayedStatus.Shelved, false, null, false, null, null), c.ToRequest(G(), Today));
+        Assert.Equal(new LogRequest("steam:1", PlayedStatus.Shelved, false, null, false, null, null), Request(c));
     }
 
     [Fact]
@@ -51,7 +55,7 @@ public class MarkAsChoiceTests
         var c = new MarkAsChoice();
         c.Toggle(Shelf.Playing);
         Assert.True(c.Changed);
-        Assert.Equal(new LogRequest("steam:1", null, false, null, null, null, null), c.ToRequest(G(), Today));
+        Assert.Equal(new LogRequest("steam:1", null, false, null, null, null, null), Request(c));
     }
 
     [Fact]
@@ -60,7 +64,7 @@ public class MarkAsChoiceTests
         var c = new MarkAsChoice();
         c.Pick(PlayedStatus.Played);
         c.Toggle(Shelf.Playing);
-        Assert.Equal(new LogRequest("steam:1", PlayedStatus.Played, true, null, null, null, Today), c.ToRequest(G(), Today));
+        Assert.Equal(new LogRequest("steam:1", PlayedStatus.Played, true, null, null, null, Today), Request(c));
     }
 
     [Fact]
@@ -75,7 +79,7 @@ public class MarkAsChoiceTests
         Assert.True(c.IsOn(Shelf.Playing));
         Assert.Null(c.Sent(Shelf.Playing));
         Assert.False(c.Changed);
-        Assert.Equal(new LogRequest("steam:1", null, null, null, null, null, null), c.ToRequest(G(), Today));
+        Assert.Equal(new LogRequest("steam:1", null, null, null, null, null, null), Request(c));
     }
 
     [Fact]
