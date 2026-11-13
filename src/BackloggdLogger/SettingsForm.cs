@@ -89,6 +89,9 @@ sealed class SettingsForm : ThemedWindow
         Group("App");
         Wide(_startup);
         Wide(_paused);
+        var version = Caption(VersionText, Theme.TextSubtle, Theme.FocusPad);
+        version.Margin = new Padding(Theme.FocusPad, Theme.S3, Theme.FocusPad, 0);
+        Wide(version);
 
         AddRow(_root, _grid);
 
@@ -115,6 +118,8 @@ sealed class SettingsForm : ThemedWindow
         _startup.Checked = startWithWindows;
         EndBuild();
     }
+
+    public static string VersionText => "Version " + (typeof(SettingsForm).Assembly.GetName().Version?.ToString(3) ?? "unknown");
 
     public const string DetectLaunchersText = "Detect Epic and GOG games";
 

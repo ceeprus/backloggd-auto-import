@@ -8,15 +8,15 @@ enum ButtonKind { Primary, Secondary, Danger, Ghost }
 
 static class Theme
 {
-    public static readonly Color Surface = Hex("#16181c");
-    public static readonly Color SurfaceAlt = Hex("#242832");
-    public static readonly Color Raised = Hex("#30394c");
-    public static readonly Color Highlight = Hex("#3f4b64");
-    public static readonly Color Border = Hex("#30394c");
+    public static readonly Color Surface = Hex("#0f1115");
+    public static readonly Color SurfaceAlt = Hex("#181b22");
+    public static readonly Color Raised = Hex("#232835");
+    public static readonly Color Highlight = Hex("#364058");
+    public static readonly Color Border = Hex("#2c3241");
     public static readonly Color BorderStrong = Hex("#5f6e8a");
-    public static readonly Color Text = Hex("#FFFFFF");
-    public static readonly Color TextMuted = Hex("#c5c9d1");
-    public static readonly Color TextSubtle = Hex("#9aa4b2");
+    public static readonly Color Text = Hex("#f2f4f8");
+    public static readonly Color TextMuted = Hex("#c8ced9");
+    public static readonly Color TextSubtle = Hex("#a7b0bf");
     public static readonly Color Accent = Hex("#D63370");
     public static readonly Color AccentHover = Hex("#CF2F6B");
     public static readonly Color AccentPressed = Hex("#BF2860");
@@ -29,12 +29,12 @@ static class Theme
     public static readonly Color StatusShelved = Hex("#e69b3e");
     public static readonly Color StatusAbandoned = Hex("#ea4747");
 
-    public static readonly Font Title = new("Segoe UI Semibold", 11f);
+    public static readonly Font Title = new("Segoe UI Semibold", 12f);
     public static readonly Font Body = new("Segoe UI", 9.75f);
     public static readonly Font Caption = new("Segoe UI", 8.25f);
     public static readonly Font ButtonFont = new("Segoe UI", 9.5f);
 
-    public const int ControlRadius = 6;
+    public const int ControlRadius = 8;
     public const int WindowRadius = 8;
     public const int S1 = 4;
     public const int S2 = 8;
