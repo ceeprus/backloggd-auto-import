@@ -93,7 +93,18 @@ sealed class GameWatcher(AppState state, ISteamSource steam, IProcessSource proc
             Log.Write("errors", "watcher: " + ex);
             return;
         }
+        Handle(events);
+    }
 
+    // The app is closing: running sessions are recorded now, or they would be lost with the app.
+    public void StopAll()
+    {
+        _timer.Stop();
+        Handle(_tracker.StopAll());
+    }
+
+    void Handle(IReadOnlyList<SessionEvent> events)
+    {
         foreach (var raw in events)
         {
             try

@@ -76,6 +76,7 @@ sealed class TrayContext : ApplicationContext
         if (_store.LoadFailed)
             _prompter.NotifyFolder(LoadFailedNotice, Paths.State);
         _watcher.Start();
+        Microsoft.Win32.SystemEvents.SessionEnding += OnSessionEnding;
         // Anything left from the last run goes once nothing else is going on.
         _journal.Kick();
     }
@@ -283,22 +284,34 @@ sealed class TrayContext : ApplicationContext
 
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Settings...", null, (_, _) => OpenSettings());
-        menu.Items.Add("Exit", null, (_, _) =>
-        {
-            // Popups still on screen were never answered: they go to the missed queue.
-            PromptPopup.CloseAll();
-            _tray.Visible = false;
-            _tray.Dispose();
-            _picker?.Close();
-            _tracked?.Close();
-            _missed?.Close();
-            _settings?.Close();
-            _watcher.Dispose();
-            _journal.Dispose();
-            _windows.Dispose();
-            ExitThread();
-        });
+        menu.Items.Add("Exit", null, (_, _) => Shutdown());
         menu.FitItemHeights();
         return menu;
     }
+
+    bool _shutDown;
+
+    // Exit, or Windows signing out or shutting down, which would kill the app with a game still running.
+    void Shutdown()
+    {
+        if (_shutDown) return;
+        _shutDown = true;
+        Microsoft.Win32.SystemEvents.SessionEnding -= OnSessionEnding;
+        try { _watcher.StopAll(); }
+        catch (Exception ex) { Log.Write("errors", "stop sessions: " + ex); }
+        // Popups still on screen were never answered: they go to the missed queue.
+        PromptPopup.CloseAll();
+        _tray.Visible = false;
+        _tray.Dispose();
+        _picker?.Close();
+        _tracked?.Close();
+        _missed?.Close();
+        _settings?.Close();
+        _watcher.Dispose();
+        _journal.Dispose();
+        _windows.Dispose();
+        ExitThread();
+    }
+
+    void OnSessionEnding(object? sender, Microsoft.Win32.SessionEndingEventArgs e) => Shutdown();
 }

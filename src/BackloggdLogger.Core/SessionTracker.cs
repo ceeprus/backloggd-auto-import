@@ -53,6 +53,15 @@ public sealed class SessionTracker
         return events;
     }
 
+    // The app is closing: every game still running ends at its last sighting.
+    public IReadOnlyList<SessionEvent> StopAll()
+    {
+        var events = new List<SessionEvent>();
+        foreach (var (id, s) in _live) AddStopIfLongEnough(events, id, s);
+        _live.Clear();
+        return events;
+    }
+
     void AddStopIfLongEnough(List<SessionEvent> events, string id, Live s)
     {
         var duration = s.LastSeen - s.Start;

@@ -35,6 +35,23 @@ public class SessionTrackerTests
     }
 
     [Fact]
+    public void StopAll_ends_running_games_at_their_last_sighting()
+    {
+        Poll(0, "steam:1", "steam:2"); Poll(10, "steam:2"); Poll(12); Poll(14); for (var t = 15; t <= 3615; t += 60) Poll(t, "steam:1");
+        _all.Clear();
+        _all.AddRange(_t.StopAll());
+        Assert.Equal(new SessionEvent[] { new GameStopped("steam:1", T0.AddSeconds(15), TimeSpan.FromSeconds(3600)) }, _all);
+        Assert.Empty(_t.StopAll());
+    }
+
+    [Fact]
+    public void StopAll_skips_a_run_shorter_than_the_minimum()
+    {
+        Poll(0, "steam:1"); Poll(20, "steam:1");
+        Assert.Empty(_t.StopAll());
+    }
+
+    [Fact]
     public void Two_games_are_tracked_independently()
     {
         for (var s = 0; s <= 150; s += 5) Poll(s, "steam:1", "steam:2");
