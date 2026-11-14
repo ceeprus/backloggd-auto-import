@@ -24,6 +24,9 @@ public sealed class SessionTracker
 
     public TimeSpan MinSession { get; set; } = DefaultMinSession;
 
+    // A game gone for less than this is still the same session, so a crash and relaunch is one session.
+    public TimeSpan RestartGrace { get; set; } = TimeSpan.Zero;
+
     public IReadOnlyList<SessionEvent> Poll(IReadOnlySet<string> running, DateTime now)
     {
         var events = new List<SessionEvent>();
@@ -48,7 +51,7 @@ public sealed class SessionTracker
         foreach (var (id, s) in _live.ToList())
         {
             if (running.Contains(id)) continue;
-            if (++s.Absent < AbsentPollsToStop) continue;
+            if (++s.Absent < AbsentPollsToStop || now - s.LastSeen < RestartGrace) continue;
             _live.Remove(id);
             AddStopIfLongEnough(events, id, s);
         }

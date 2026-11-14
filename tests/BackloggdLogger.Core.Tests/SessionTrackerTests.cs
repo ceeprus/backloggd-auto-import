@@ -21,6 +21,18 @@ public class SessionTrackerTests
     }
 
     [Fact]
+    public void A_relaunch_inside_the_restart_grace_continues_the_session()
+    {
+        _t.RestartGrace = TimeSpan.FromSeconds(90);
+        Poll(0, "steam:1"); Poll(60, "steam:1"); Poll(65); Poll(70); Poll(130, "steam:1"); Poll(200, "steam:1");
+        Assert.Equal(new SessionEvent[] { new GameStarted("steam:1", T0) }, _all);
+        Poll(205); Poll(210); Poll(280);
+        Assert.Empty(_all.Skip(1));
+        Poll(295);
+        Assert.Equal(new SessionEvent[] { new GameStarted("steam:1", T0), new GameStopped("steam:1", T0, TimeSpan.FromSeconds(200)) }, _all);
+    }
+
+    [Fact]
     public void Short_run_emits_started_but_no_stopped()
     {
         Poll(0, "steam:1"); Poll(20, "steam:1"); Poll(60); Poll(100); Poll(140);

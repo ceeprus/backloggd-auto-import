@@ -5,6 +5,9 @@ namespace BackloggdLogger;
 sealed class GameWatcher(AppState state, ISteamSource steam, IProcessSource processes, Coordinator coordinator, ILauncherSource? launchers = null, Action? save = null) : IDisposable
 {
     static readonly TimeSpan CheckpointEvery = TimeSpan.FromMinutes(1);
+
+    // Under SessionTracker.MaxPollGap, so a relaunch inside it continues the session.
+    public static TimeSpan RestartGrace { get; set; } = TimeSpan.FromSeconds(90);
     DateTime _checkpointAt;
 
     // Epic and GOG games seen running, by id, for the name and exe of the record made from the id.
@@ -51,6 +54,7 @@ sealed class GameWatcher(AppState state, ISteamSource steam, IProcessSource proc
         var settings = state.Settings;
         SettingsChanged();
         _tracker.MinSession = TimeSpan.FromSeconds(settings.MinSessionSeconds);
+        _tracker.RestartGrace = RestartGrace;
         IReadOnlyList<SessionEvent> events;
         try
         {
