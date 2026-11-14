@@ -38,7 +38,7 @@ sealed class PromptPopup : Form
     const double MaxOpacity = 0.99;
     const int EnterMs = 180;
     const int EnterOffset = 16;
-    const int ExitMs = 160;
+    const int ExitMs = 145;
     const int ResizeMs = 140;
     public const int FrameMs = 15;
     const int BusyProbeMs = 250;
@@ -53,6 +53,18 @@ sealed class PromptPopup : Form
 
     [DllImport("user32.dll", EntryPoint = "SetWindowLongPtrW")]
     static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int index, IntPtr value);
+
+    [DllImport("user32.dll")]
+    static extern bool SystemParametersInfo(uint action, uint param, ref bool value, uint winIni);
+
+    const uint SPI_GETCLIENTAREAANIMATION = 0x1042;
+
+    // Windows "Animation effects" (Accessibility > Visual effects). Off: popups fade but never slide or grow.
+    static bool WindowsAnimates()
+    {
+        var on = true;
+        return !SystemParametersInfo(SPI_GETCLIENTAREAANIMATION, 0, ref on, 0) || on;
+    }
 
     // Placed popups in stack order from the corner, and popups waiting for room in arrival order.
     static readonly List<PromptPopup> Open = new();
@@ -71,6 +83,9 @@ sealed class PromptPopup : Form
     readonly bool _notice;
     readonly long _arrival = ++_arrivals;
     readonly float _scale;
+    readonly bool _moves = WindowsAnimates();
+
+    int EnterPx => _moves ? Px(EnterOffset) : 0;
 
     // One timer drives every moving part. Each frame reads elapsed time from a Stopwatch, so the
     // motion stays even when frames arrive late.
@@ -428,7 +443,7 @@ sealed class PromptPopup : Form
 
     void StepResize()
     {
-        var t = Math.Min(1.0, _resizeClock.ElapsedMilliseconds / (double)ResizeMs);
+        var t = _moves ? Math.Min(1.0, _resizeClock.ElapsedMilliseconds / (double)ResizeMs) : 1.0;
         var ease = 1 - Math.Pow(1 - t, 3);
         SetHeight((int)Math.Round(_resizeFrom + (_resizeTo - _resizeFrom) * ease));
         if (t < 1.0) return;
@@ -479,7 +494,7 @@ sealed class PromptPopup : Form
         if (!IsHandleCreated || !Visible)
         {
             _sliding = false;
-            Location = new Point(x + Px(EnterOffset), y);
+            Location = new Point(x + EnterPx, y);
             return;
         }
         if (animate && from != y)
@@ -505,7 +520,7 @@ sealed class PromptPopup : Form
 
     void StepSlide()
     {
-        var t = Math.Min(1.0, _slideClock.ElapsedMilliseconds / (double)ResizeMs);
+        var t = _moves ? Math.Min(1.0, _slideClock.ElapsedMilliseconds / (double)ResizeMs) : 1.0;
         var ease = 1 - Math.Pow(1 - t, 3);
         _slideY = (int)Math.Round(_slideFrom + (_final.Y - _slideFrom) * ease);
         if (t < 1.0) return;
@@ -670,7 +685,7 @@ sealed class PromptPopup : Form
     {
         RaiseAboveGame();
         _entering = true;
-        _enterDx = Px(EnterOffset);
+        _enterDx = EnterPx;
         _enterClock.Restart();
         if (CountdownRunning) _countdownClock.Start();
         Animate();
@@ -680,7 +695,7 @@ sealed class PromptPopup : Form
     {
         var t = Math.Min(1.0, _enterClock.ElapsedMilliseconds / (double)EnterMs);
         var ease = 1 - Math.Pow(1 - t, 3);
-        _enterDx = (int)Math.Round(Px(EnterOffset) * (1 - ease));
+        _enterDx = (int)Math.Round(EnterPx * (1 - ease));
         Opacity = Math.Min(ease, MaxOpacity);
         if (t < 1.0) return;
         _entering = false;
