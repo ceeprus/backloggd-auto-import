@@ -62,9 +62,18 @@ public sealed class SessionTracker
     public IReadOnlyList<LiveSession> Snapshot() => _live.Select(kv => new LiveSession(kv.Key, kv.Value.Start, kv.Value.LastSeen)).ToList();
 
     // Sessions the save file still held at start: the app was killed (forced restart, crash, power cut) while
-    // they ran. Each ends at its last sighting, like a session the app saw end.
-    public static IReadOnlyList<SessionEvent> Recover(IEnumerable<LiveSession> left, TimeSpan minSession) =>
-        left.Where(s => s.LastSeen - s.Start >= minSession).Select(s => (SessionEvent)new GameStopped(s.GameId, s.Start, s.LastSeen - s.Start)).ToList();
+    // they ran. One seen within MaxPollGap may still run, so the next poll continues or ends it; older ones end now.
+    public IReadOnlyList<SessionEvent> Resume(IEnumerable<LiveSession> left, DateTime now)
+    {
+        var events = new List<SessionEvent>();
+        foreach (var s in left)
+        {
+            var live = new Live { Start = s.Start, LastSeen = s.LastSeen };
+            if (now - s.LastSeen <= MaxPollGap) _live[s.GameId] = live;
+            else AddStopIfLongEnough(events, s.GameId, live);
+        }
+        return events;
+    }
 
     // The app is closing: every game still running ends at its last sighting.
     public IReadOnlyList<SessionEvent> StopAll()

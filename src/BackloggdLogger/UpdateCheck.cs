@@ -42,7 +42,13 @@ sealed class UpdateCheck : IDisposable
             _save();
             _notify(latest, Current, Releases.SafeUrl(url));
         }
-        catch (Exception ex) { Log.Write("update", "check failed: " + ex.Message); }
+        catch (Exception ex)
+        {
+            Log.Write("update", "check failed: " + ex.Message);
+            // Offline at boot, say: try again in an hour rather than never this run.
+            _timer.Interval = 3_600_000;
+            _timer.Start();
+        }
     }
 
     static async Task<(string? Tag, string? Url)> LatestAsync()

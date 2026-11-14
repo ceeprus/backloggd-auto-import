@@ -69,7 +69,12 @@ public sealed class StateStore(string path)
         var target = LoadFailed ? Path.Combine(Path.GetDirectoryName(path)!, "state.recovered.json") : path;
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);
         var tmp = target + ".tmp";
-        File.WriteAllText(tmp, JsonSerializer.Serialize(state, JsonOptions));
+        // Flushed to disk before the rename, so a power cut can't leave the new name on empty content.
+        using (var file = new FileStream(tmp, FileMode.Create, FileAccess.Write, FileShare.None))
+        {
+            JsonSerializer.Serialize(file, state, JsonOptions);
+            file.Flush(flushToDisk: true);
+        }
         File.Move(tmp, target, overwrite: true);
     }
 }

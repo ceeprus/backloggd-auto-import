@@ -299,7 +299,7 @@ public sealed class AppState
     public Dictionary<string, GameRecord> Games { get; set; } = new();
     public bool PromptsPaused { get; set; }
 
-    // Sessions running at the last save; see SessionTracker.Recover.
+    // Sessions running at the last save; see SessionTracker.Resume.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public List<LiveSession>? Running { get; set; }
 

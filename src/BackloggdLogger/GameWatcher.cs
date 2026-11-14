@@ -114,13 +114,14 @@ sealed class GameWatcher(AppState state, ISteamSource steam, IProcessSource proc
         if (events.Count == 0) save?.Invoke();
     }
 
-    // Sessions a killed app left in the save file are recorded once, before the first poll.
+    // Sessions a killed app left in the save file, before the first poll: recent ones continue, older ones are recorded.
     public void RecoverLeftover()
     {
         if (state.Running is not { Count: > 0 } left) return;
         state.Running = null;
-        var events = SessionTracker.Recover(left, TimeSpan.FromSeconds(state.Settings.MinSessionSeconds));
-        Log.Write("sessions", $"recovered {events.Count} of {left.Count} sessions the app didn't see end");
+        _tracker.MinSession = TimeSpan.FromSeconds(state.Settings.MinSessionSeconds);
+        var events = _tracker.Resume(left, DateTime.UtcNow);
+        Log.Write("sessions", $"{left.Count} sessions the app didn't see end: {events.Count} recorded, the rest continue if still running");
         Handle(events);
         if (events.Count == 0) save?.Invoke();
     }

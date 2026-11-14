@@ -57,14 +57,32 @@ public class SessionTrackerTests
     }
 
     [Fact]
-    public void Snapshot_lists_running_games_and_Recover_turns_them_into_stops()
+    public void Snapshot_lists_running_games_and_Resume_ends_old_ones()
     {
         for (var t = 0; t <= 600; t += 60) Poll(t, "steam:1");
         Poll(600, "steam:1", "steam:2");
         var left = _t.Snapshot();
         Assert.Equal(new[] { new LiveSession("steam:1", T0, T0.AddSeconds(600)), new LiveSession("steam:2", T0.AddSeconds(600), T0.AddSeconds(600)) }, left);
-        Assert.Equal(new SessionEvent[] { new GameStopped("steam:1", T0, TimeSpan.FromSeconds(600)) }, SessionTracker.Recover(left, SessionTracker.DefaultMinSession));
-        Assert.Empty(SessionTracker.Recover([], SessionTracker.DefaultMinSession));
+        var next = new SessionTracker();
+        Assert.Equal(new SessionEvent[] { new GameStopped("steam:1", T0, TimeSpan.FromSeconds(600)) }, next.Resume(left, T0.AddHours(5)));
+        Assert.Empty(next.Snapshot());
+        Assert.Empty(next.Resume([], T0));
+    }
+
+    [Fact]
+    public void Resume_continues_a_session_seen_moments_ago()
+    {
+        var next = new SessionTracker();
+        var left = new[] { new LiveSession("steam:1", T0, T0.AddSeconds(600)) };
+        Assert.Empty(next.Resume(left, T0.AddSeconds(660)));
+        Assert.Empty(next.Poll(new HashSet<string> { "steam:1" }, T0.AddSeconds(665)));
+        next.Poll(new HashSet<string>(), T0.AddSeconds(670));
+        Assert.Equal(new SessionEvent[] { new GameStopped("steam:1", T0, TimeSpan.FromSeconds(665)) }, next.Poll(new HashSet<string>(), T0.AddSeconds(675)));
+
+        var gone = new SessionTracker();
+        gone.Resume(left, T0.AddSeconds(660));
+        gone.Poll(new HashSet<string>(), T0.AddSeconds(665));
+        Assert.Equal(new SessionEvent[] { new GameStopped("steam:1", T0, TimeSpan.FromSeconds(600)) }, gone.Poll(new HashSet<string>(), T0.AddSeconds(670)));
     }
 
     [Fact]
