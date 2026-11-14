@@ -24,7 +24,7 @@ Rating, review, likes and notes are never touched.
 
 ## Build
 
-.NET 10 SDK and WebView2 Runtime.
+Needs the .NET 10 SDK and the WebView2 Runtime.
 
 ```
 dotnet test
