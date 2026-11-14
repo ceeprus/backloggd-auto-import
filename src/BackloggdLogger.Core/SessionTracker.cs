@@ -4,6 +4,9 @@ public abstract record SessionEvent(string GameId);
 public sealed record GameStarted(string GameId, DateTime StartedAt) : SessionEvent(GameId);
 public sealed record GameStopped(string GameId, DateTime StartedAt, TimeSpan Duration) : SessionEvent(GameId);
 
+// A session still running, as the save file keeps it (UTC), so one the app never saw end is not lost.
+public sealed record LiveSession(string GameId, DateTime Start, DateTime LastSeen);
+
 public sealed class SessionTracker
 {
     public static readonly TimeSpan DefaultMinSession = TimeSpan.FromSeconds(30);
@@ -52,6 +55,13 @@ public sealed class SessionTracker
 
         return events;
     }
+
+    public IReadOnlyList<LiveSession> Snapshot() => _live.Select(kv => new LiveSession(kv.Key, kv.Value.Start, kv.Value.LastSeen)).ToList();
+
+    // Sessions the save file still held at start: the app was killed (forced restart, crash, power cut) while
+    // they ran. Each ends at its last sighting, like a session the app saw end.
+    public static IReadOnlyList<SessionEvent> Recover(IEnumerable<LiveSession> left, TimeSpan minSession) =>
+        left.Where(s => s.LastSeen - s.Start >= minSession).Select(s => (SessionEvent)new GameStopped(s.GameId, s.Start, s.LastSeen - s.Start)).ToList();
 
     // The app is closing: every game still running ends at its last sighting.
     public IReadOnlyList<SessionEvent> StopAll()

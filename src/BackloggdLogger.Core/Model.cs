@@ -299,6 +299,10 @@ public sealed class AppState
     public Dictionary<string, GameRecord> Games { get; set; } = new();
     public bool PromptsPaused { get; set; }
 
+    // Sessions running at the last save; see SessionTracker.Recover.
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public List<LiveSession>? Running { get; set; }
+
     // The newest release the user was told about, so each version is announced once.
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
     public string? UpdateNotified { get; set; }

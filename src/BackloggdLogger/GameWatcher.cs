@@ -2,8 +2,11 @@ using BackloggdLogger.Core;
 
 namespace BackloggdLogger;
 
-sealed class GameWatcher(AppState state, ISteamSource steam, IProcessSource processes, Coordinator coordinator, ILauncherSource? launchers = null) : IDisposable
+sealed class GameWatcher(AppState state, ISteamSource steam, IProcessSource processes, Coordinator coordinator, ILauncherSource? launchers = null, Action? save = null) : IDisposable
 {
+    static readonly TimeSpan CheckpointEvery = TimeSpan.FromMinutes(1);
+    DateTime _checkpointAt;
+
     // Epic and GOG games seen running, by id, for the name and exe of the record made from the id.
     readonly Dictionary<string, LauncherGame> _launcherGames = new();
 
@@ -84,6 +87,7 @@ sealed class GameWatcher(AppState state, ISteamSource steam, IProcessSource proc
             AnyPlayRunning = _playHold.Update(appId != 0 || running.Count > 0 || knownEmulators.Count > 0 || emulatorRunning, now, GameHold);
 
             events = _tracker.Poll(ids, now);
+            Checkpoint(now, events.Count > 0);
         }
         catch (Exception ex)
         {
@@ -100,7 +104,32 @@ sealed class GameWatcher(AppState state, ISteamSource steam, IProcessSource proc
     public void StopAll()
     {
         _timer.Stop();
-        Handle(_tracker.StopAll());
+        state.Running = null;
+        var events = _tracker.StopAll();
+        Handle(events);
+        if (events.Count == 0) save?.Invoke();
+    }
+
+    // Sessions a killed app left in the save file are recorded once, before the first poll.
+    public void RecoverLeftover()
+    {
+        if (state.Running is not { Count: > 0 } left) return;
+        state.Running = null;
+        var events = SessionTracker.Recover(left, TimeSpan.FromSeconds(state.Settings.MinSessionSeconds));
+        Log.Write("sessions", $"recovered {events.Count} of {left.Count} sessions the app didn't see end");
+        Handle(events);
+        if (events.Count == 0) save?.Invoke();
+    }
+
+    // The running sessions go into the save when a game starts or stops (the coordinator saves then) and once a
+    // minute while one runs, so a killed app loses at most a minute.
+    void Checkpoint(DateTime now, bool eventsWillSave)
+    {
+        var live = _tracker.Snapshot();
+        state.Running = live.Count == 0 ? null : live.ToList();
+        if (eventsWillSave || live.Count == 0 || now - _checkpointAt < CheckpointEvery) return;
+        _checkpointAt = now;
+        save?.Invoke();
     }
 
     void Handle(IReadOnlyList<SessionEvent> events)

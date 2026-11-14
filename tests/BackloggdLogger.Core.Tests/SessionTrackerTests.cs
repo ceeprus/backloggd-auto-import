@@ -45,6 +45,27 @@ public class SessionTrackerTests
     }
 
     [Fact]
+    public void Snapshot_lists_running_games_and_Recover_turns_them_into_stops()
+    {
+        for (var t = 0; t <= 600; t += 60) Poll(t, "steam:1");
+        Poll(600, "steam:1", "steam:2");
+        var left = _t.Snapshot();
+        Assert.Equal(new[] { new LiveSession("steam:1", T0, T0.AddSeconds(600)), new LiveSession("steam:2", T0.AddSeconds(600), T0.AddSeconds(600)) }, left);
+        Assert.Equal(new SessionEvent[] { new GameStopped("steam:1", T0, TimeSpan.FromSeconds(600)) }, SessionTracker.Recover(left, SessionTracker.DefaultMinSession));
+        Assert.Empty(SessionTracker.Recover([], SessionTracker.DefaultMinSession));
+    }
+
+    [Fact]
+    public void Running_sessions_survive_the_save_file()
+    {
+        var state = new AppState { Running = [new LiveSession("steam:1", T0.ToUniversalTime(), T0.AddMinutes(9).ToUniversalTime())] };
+        var back = System.Text.Json.JsonSerializer.Deserialize<AppState>(System.Text.Json.JsonSerializer.Serialize(state, StateStore.JsonOptions), StateStore.JsonOptions)!;
+        Assert.Equal(state.Running, back.Running);
+        Assert.Equal(DateTimeKind.Utc, back.Running![0].Start.Kind);
+        Assert.DoesNotContain("Running", System.Text.Json.JsonSerializer.Serialize(new AppState(), StateStore.JsonOptions), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void StopAll_skips_a_run_shorter_than_the_minimum()
     {
         Poll(0, "steam:1"); Poll(20, "steam:1");

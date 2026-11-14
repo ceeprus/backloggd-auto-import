@@ -60,7 +60,7 @@ sealed class TrayContext : ApplicationContext
             catch (Exception ex) { Log.Write("errors", "tracked games refill: " + ex); }
         };
 
-        _watcher = new GameWatcher(_state, new RegistrySteamSource(), new WindowsProcessSource(), _coordinator, new InstalledLauncherGames());
+        _watcher = new GameWatcher(_state, new RegistrySteamSource(), new WindowsProcessSource(), _coordinator, new InstalledLauncherGames(), Save);
         _journal = new JournalSync(_state, Save, SaveChecked, () => _watcher.AnyPlayRunning, () => _windows.OpenWindow is not null, JournalGaveUp, _ =>
         {
             try { _tracked?.Refill(); }
@@ -79,6 +79,7 @@ sealed class TrayContext : ApplicationContext
             _prompter.NotifyFolder(CorruptNotice(backup), backup);
         if (_store.LoadFailed)
             _prompter.NotifyFolder(LoadFailedNotice, Paths.State);
+        _watcher.RecoverLeftover();
         _watcher.Start();
         _updates = new UpdateCheck(_state, () => _watcher.AnyGameRunning || _state.PromptsPaused, _prompter.NotifyUpdate, Save);
         _updates.Start();
