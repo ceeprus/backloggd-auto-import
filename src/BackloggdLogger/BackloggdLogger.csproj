@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>BackloggdLogger</RootNamespace>
     <AssemblyName>BackloggdLogger</AssemblyName>
-    <Version>1.4.1</Version>
+    <Version>1.4.2</Version>
     <NoWarn>$(NoWarn);MSB3277</NoWarn>
     <ApplicationIcon>Assets/app.ico</ApplicationIcon>
   </PropertyGroup>
