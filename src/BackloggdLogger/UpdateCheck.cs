@@ -4,7 +4,7 @@ using BackloggdLogger.Core;
 
 namespace BackloggdLogger;
 
-// Once per run, when no game is running and popups aren't paused, asks GitHub for the latest release
+// Once per run, when the setting is on, no game is running and popups aren't paused, asks GitHub for the latest release
 // and announces a newer one once per version.
 sealed class UpdateCheck : IDisposable
 {
@@ -49,6 +49,19 @@ sealed class UpdateCheck : IDisposable
             _timer.Interval = 3_600_000;
             _timer.Start();
         }
+    }
+
+    // The user's own check from Settings: it runs whatever the setting, a running game or an
+    // earlier announcement say. The newer version, or null when this one is the latest; throws
+    // when GitHub can't be reached.
+    public async Task<Version?> CheckNowAsync()
+    {
+        var (tag, url) = await LatestAsync();
+        if (Releases.Newer(tag, Current) is not { } latest) return null;
+        _state.UpdateNotified = latest.ToString(3);
+        _save();
+        _notify(latest, Current, Releases.SafeUrl(url));
+        return latest;
     }
 
     static async Task<(string? Tag, string? Url)> LatestAsync()

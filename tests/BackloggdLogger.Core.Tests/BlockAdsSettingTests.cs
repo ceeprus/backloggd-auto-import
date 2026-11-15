@@ -24,6 +24,7 @@ public class BlockAdsSettingTests : IDisposable
         File.WriteAllText(StatePath, """{ "Games": {}, "Settings": { "PollSeconds": 4, "AutoAddJournalTime": true } }""");
         var s = new StateStore(StatePath).Load().Settings;
         Assert.False(s.BlockAds);
+        Assert.True(s.CheckForUpdates);
         Assert.Equal(4, s.PollSeconds);
     }
 

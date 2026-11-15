@@ -81,7 +81,7 @@ sealed class TrayContext : ApplicationContext
             _prompter.NotifyFolder(LoadFailedNotice, Paths.State);
         _watcher.RecoverLeftover();
         _watcher.Start();
-        _updates = new UpdateCheck(_state, () => _watcher.AnyGameRunning || _state.PromptsPaused, _prompter.NotifyUpdate, Save);
+        _updates = new UpdateCheck(_state, () => !_state.Settings.CheckForUpdates || _watcher.AnyGameRunning || _state.PromptsPaused,_prompter.NotifyUpdate, Save);
         _updates.Start();
         if (firstRun)
         {
@@ -193,7 +193,7 @@ sealed class TrayContext : ApplicationContext
     void OpenSettings()
     {
         if (Raise(_settings)) return;
-        _settings = new SettingsForm(_state.Settings, _state.PromptsPaused, StartupEntry.IsEnabled, ApplySettings);
+        _settings = new SettingsForm(_state.Settings, _state.PromptsPaused, StartupEntry.IsEnabled, ApplySettings, _updates is { } u ? u.CheckNowAsync : null);
         _settings.FormClosed += (_, _) => _settings = null;
         _settings.Show();
     }

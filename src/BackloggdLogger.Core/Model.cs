@@ -189,6 +189,9 @@ public sealed record AppSettings
     // by default, so the site earns from its ads.
     public bool BlockAds { get; init; }
 
+    // Once per run the app asks GitHub for a newer release and announces it. Off: no request.
+    public bool CheckForUpdates { get; init; } = true;
+
     // Known emulators (EmulatorTitles.Detect) that are running get a tracked record on their own.
     public bool DetectEmulators { get; init; } = true;
 

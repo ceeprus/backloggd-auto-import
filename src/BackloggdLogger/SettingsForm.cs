@@ -42,6 +42,7 @@ sealed class SettingsForm : ThemedWindow
     readonly ThemedCheck _blockAds = new(BlockAdsText);
     readonly ThemedCheck _startup = new("Start with Windows");
     readonly ThemedCheck _paused = new("Pause popups");
+    readonly ThemedCheck _updates = new("Check for updates");
     readonly NumberRow _startSeconds;
     readonly NumberRow _closeSeconds;
     readonly NumberRow _minSession;
@@ -49,7 +50,8 @@ sealed class SettingsForm : ThemedWindow
     readonly NumberRow _delay;
     readonly ThemedButton _saveButton = new("Save", ButtonKind.Primary);
 
-    public SettingsForm(AppSettings current, bool promptsPaused, bool startWithWindows, Action<SettingsChoice> save)
+    public SettingsForm(AppSettings current, bool promptsPaused, bool startWithWindows, Action<SettingsChoice> save,
+        Func<Task<Version?>>? checkNow = null)
     {
         _initial = current;
         _save = save;
@@ -89,6 +91,8 @@ sealed class SettingsForm : ThemedWindow
         Group("App");
         Wide(_startup);
         Wide(_paused);
+        Wide(_updates);
+        if (checkNow is not null) Wide(CheckNow(checkNow));
 
         Group("About");
         Wide(About());
@@ -119,7 +123,45 @@ sealed class SettingsForm : ThemedWindow
         EndBuild();
     }
 
-    public const string RepoUrl = "https://github.com/ceeprus/backloggd-auto-import";
+    public const string CheckingText = "Checking…";
+    public const string CheckFailedText = "Couldn't reach GitHub. Try again later.";
+
+    public static string CheckedText(Version? latest) =>
+        latest is null ? "You have the latest version." : $"Version {latest.ToString(3)} is available.";
+
+    // A check the user asks for, answered beside the button. A newer version also gets the usual
+    // popup with its Download button.
+    FlowLayoutPanel CheckNow(Func<Task<Version?>> check)
+    {
+        var button = new ThemedButton("Check now", ButtonKind.Secondary);
+        var status = new Label { ForeColor = Theme.TextMuted, AutoSize = true, Anchor = AnchorStyles.Left };
+        button.Click += async (_, _) =>
+        {
+            button.Enabled = false;
+            status.ForeColor = Theme.TextMuted;
+            status.Text = CheckingText;
+            string text;
+            var failed = false;
+            try { text = CheckedText(await check()); }
+            catch (Exception ex)
+            {
+                Log.Write("update", "check failed: " + ex.Message);
+                text = CheckFailedText;
+                failed = true;
+            }
+            if (IsDisposed) return;
+            status.Text = text;
+            status.ForeColor = failed ? Theme.Danger : Theme.TextMuted;
+            button.AccessibleDescription = text;
+            button.Enabled = true;
+        };
+        var row = Flow(button, status);
+        // The button's edge lines up with the checkbox boxes above it.
+        row.Margin = new Padding(CheckIndent, Theme.S1, 0, 0);
+        return row;
+    }
+
+    public const string RepoUrl ="https://github.com/ceeprus/backloggd-auto-import";
     public const string XUrl = "https://x.com/Ceeprus";
 
     // Name and version with the links on the left, the app's picture on the right.
@@ -325,6 +367,7 @@ sealed class SettingsForm : ThemedWindow
         _detectLaunchers.Checked = s.DetectLauncherGames;
         _journal.Checked = s.AutoAddJournalTime;
         _blockAds.Checked = s.BlockAds;
+        _updates.Checked = s.CheckForUpdates;
     }
 
     public void SyncApp(bool? promptsPaused = null, bool? startWithWindows = null)
@@ -356,6 +399,7 @@ sealed class SettingsForm : ThemedWindow
             DetectLauncherGames = _detectLaunchers.Checked,
             AutoAddJournalTime = _journal.Checked,
             BlockAds = _blockAds.Checked,
+            CheckForUpdates = _updates.Checked,
         };
         _save(new SettingsChoice(settings, _paused.Checked, _startup.Checked));
         Close();
