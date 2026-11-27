@@ -110,7 +110,8 @@ public sealed class Coordinator(AppState state, Action save, IPrompter prompter,
 
                 case GameStopped s:
                     g.LastSessionMinutes = PlayHistory.Minutes(s.Duration);
-                    g.AddPlay(DateOnly.FromDateTime(s.StartedAt), g.LastSessionMinutes, forJournal: state.Settings.AutoAddJournalTime);
+                    foreach (var (day, minutes) in PlayHistory.ByDay(s.StartedAt, s.Duration))
+                        g.AddPlay(day, minutes, forJournal: state.Settings.AutoAddJournalTime);
                     save();
                     changed = true;
                     journal = true;

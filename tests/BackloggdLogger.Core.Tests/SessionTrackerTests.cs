@@ -33,6 +33,21 @@ public class SessionTrackerTests
     }
 
     [Fact]
+    public void A_forgotten_session_ends_with_no_event_and_is_left_out_of_the_save()
+    {
+        Poll(0, "steam:1", "steam:2"); Poll(60, "steam:1", "steam:2");
+        _t.Forget("steam:1");
+        Assert.Equal(new[] { "steam:2" }, _t.Snapshot().Select(s => s.GameId));
+        Poll(120, "steam:1", "steam:2"); Poll(130, "steam:2"); Poll(140, "steam:2");
+        Assert.Equal(2, _all.Count);
+        Assert.Equal(new[] { "steam:2" }, _t.StopAll().Select(e => e.GameId));
+        Poll(200, "steam:3"); _t.Forget("steam:3");
+        // A gap past MaxPollGap would start a new session; a forgotten one goes on.
+        Poll(500, "steam:3"); Poll(510); Poll(520);
+        Assert.Equal(3, _all.Count);
+    }
+
+    [Fact]
     public void Short_run_emits_started_but_no_stopped()
     {
         Poll(0, "steam:1"); Poll(20, "steam:1"); Poll(60); Poll(100); Poll(140);

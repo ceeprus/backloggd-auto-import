@@ -256,7 +256,7 @@ sealed class TrayContext : ApplicationContext
         {
             if (Raise(_tracked)) return;
             _tracked = new TrackedGamesForm(_state, Save, OpenPicker, g => _windows.OpenMatch(g.Id),
-                g => _windows.Open(Actions.PendingRequest(g) ?? LogRequest.OpenOnly(g.Id)));
+                g => _windows.Open(Actions.PendingRequest(g) ?? LogRequest.OpenOnly(g.Id)), _watcher.Forget);
             _tracked.FormClosed += (_, _) => _tracked = null;
             _tracked.Show();
         });

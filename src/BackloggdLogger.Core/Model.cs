@@ -167,6 +167,20 @@ public sealed class PlayDay
 public static class PlayHistory
 {
     public static int Minutes(TimeSpan duration) => (int)Math.Round(duration.TotalMinutes, MidpointRounding.AwayFromZero);
+
+    // A session's minutes per local day, cut at each midnight. Rounded on the running total, so the days add up to
+    // Minutes(duration) and a whole day is exactly 1440.
+    public static IEnumerable<(DateOnly Day, int Minutes)> ByDay(DateTime start, TimeSpan duration)
+    {
+        var end = start + duration;
+        var done = 0;
+        for (var day = start.Date; day < end; day = day.AddDays(1))
+        {
+            var upTo = Minutes((day.AddDays(1) < end ? day.AddDays(1) : end) - start);
+            yield return (DateOnly.FromDateTime(day), upTo - done);
+            done = upTo;
+        }
+    }
 }
 
 public enum PopupCorner { BottomRight, TopRight }

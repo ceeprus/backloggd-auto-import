@@ -709,6 +709,7 @@ sealed class TrackedGamesForm : ThemedWindow
     readonly Action _save;
     readonly Action<GameRecord> _findMatch;
     readonly Action<GameRecord> _openLog;
+    readonly Action<string>? _forget;
     readonly GameList _list = new();
     readonly ListScrollBar _scroll;
     readonly ActionBar _bar;
@@ -733,9 +734,10 @@ sealed class TrackedGamesForm : ThemedWindow
     int _hot = -1;
     string? _tipText;
 
-    public TrackedGamesForm(AppState state, Action save, Action trackRunningGame, Action<GameRecord> findMatch, Action<GameRecord> openLog)
+    public TrackedGamesForm(AppState state, Action save, Action trackRunningGame, Action<GameRecord> findMatch, Action<GameRecord> openLog, Action<string>? forget = null)
     {
         _state = state;
+        _forget = forget;
         _findMatch = findMatch;
         _openLog = openLog;
         _save = save;
@@ -761,8 +763,7 @@ sealed class TrackedGamesForm : ThemedWindow
         AddRow(root, _filter);
         root.SetColumnSpan(_filter, 2);
 
-        // The list adds one pixel under the image, so 31 gives the 32 px row.
-        _rows = new ImageList { ImageSize = new Size(1, Px(32) - 1) };
+        _rows = new ImageList { ImageSize = RowImage() };
         _list.SmallImageList = _rows;
         BuildColumns();
 
@@ -823,7 +824,8 @@ sealed class TrackedGamesForm : ThemedWindow
         _list.MouseLeave += (_, _) => { SetHot(-1); SetTip(null); };
         _list.DoubleClick += (_, _) => Rename();
         _list.SetColumnSpecs(ColumnSpecs);
-        _list.DpiChangedAfterParent += (_, _) => MeasureColumns();
+        // A new ImageSize recreates the list's image list, which sets the row height again.
+        _list.DpiChangedAfterParent += (_, _) => { _rows.ImageSize = RowImage(); MeasureColumns(); };
         _list.HeaderMenu += p => _headerMenu.Show(p);
         _list.RowMenu += ShowRowMenu;
         _empty.Action!.Click += (_, _) => trackRunningGame();
@@ -940,6 +942,7 @@ sealed class TrackedGamesForm : ThemedWindow
         if (Selected is not { } g) return;
         if (!ConfirmDialog.Ask(this, "Remove game", $"Remove {g.DisplayName}?", "The app forgets this game. Your Backloggd log is not touched.", "Remove")) return;
         _state.Games.Remove(g.Id);
+        _forget?.Invoke(g.Id);
         _state.PruneMissed(DateTime.Now);
         _save();
         Refill(reveal: true);
@@ -1308,6 +1311,9 @@ sealed class TrackedGamesForm : ThemedWindow
     readonly Dictionary<TrackedColumn, int> _contentWidths = new();
 
     // Measured again whenever the rows, the columns shown or the DPI change.
+    // The list adds one pixel under the image, so 31 gives the 32 px row.
+    Size RowImage() => new(1, Px(32) - 1);
+
     void MeasureColumns()
     {
         _contentWidths.Clear();

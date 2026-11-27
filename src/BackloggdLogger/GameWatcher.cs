@@ -114,6 +114,9 @@ sealed class GameWatcher(AppState state, ISteamSource steam, IProcessSource proc
         if (events.Count == 0) save?.Invoke();
     }
 
+    // The user removed the game's record while it runs: its session ends quietly, so it doesn't come back.
+    public void Forget(string id) => _tracker.Forget(id);
+
     // Sessions a killed app left in the save file, before the first poll: recent ones continue, older ones are recorded.
     public void RecoverLeftover()
     {

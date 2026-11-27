@@ -47,8 +47,7 @@ sealed class MissedPopupsForm : ThemedWindow
         var root = Stack();
         AddRow(root, Heading("Missed popups", Theme.S3));
 
-        // The list adds one pixel under the image, so 31 gives the 32 px row.
-        _rows = new ImageList { ImageSize = new Size(1, Px(32) - 1) };
+        _rows = new ImageList { ImageSize = RowImage() };
         _list.SmallImageList = _rows;
         foreach (var c in Enum.GetValues<Column>())
             _list.Columns.Add(new ColumnHeader { Text = c == Column.Icon ? "" : c.ToString(), Width = Px(80) });
@@ -97,7 +96,8 @@ sealed class MissedPopupsForm : ThemedWindow
         _list.MouseLeave += (_, _) => { SetHot(-1); SetTip(null); };
         _list.DoubleClick += (_, _) => ShowAgain();
         _list.SetColumnSpecs(ColumnSpecs);
-        _list.DpiChangedAfterParent += (_, _) => MeasureColumns();
+        // A new ImageSize recreates the list's image list, which sets the row height again.
+        _list.DpiChangedAfterParent += (_, _) => { _rows.ImageSize = RowImage(); MeasureColumns(); };
         _list.RowMenu += ShowRowMenu;
         _state.MissedPopups.Changed += OnQueueChanged;
         _clock.Tick += (_, _) => RefreshWhen();
@@ -335,6 +335,9 @@ sealed class MissedPopupsForm : ThemedWindow
 
     // When is as wide as its widest text ("Yesterday 21:40"), so it is never cut; measured again
     // whenever the rows, their texts or the DPI change.
+    // The list adds one pixel under the image, so 31 gives the 32 px row.
+    Size RowImage() => new(1, Px(32) - 1);
+
     void MeasureColumns()
     {
         var texts = _list.Items.Cast<ListViewItem>().Select(item => item.SubItems[(int)Column.When].Text);

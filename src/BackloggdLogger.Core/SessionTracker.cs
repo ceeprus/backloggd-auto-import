@@ -18,6 +18,8 @@ public sealed class SessionTracker
         public DateTime Start;
         public DateTime LastSeen;
         public int Absent;
+        // The user removed the game while it ran: the session goes on quietly and ends with no event.
+        public bool Forgotten;
     }
 
     readonly Dictionary<string, Live> _live = new();
@@ -33,7 +35,7 @@ public sealed class SessionTracker
 
         foreach (var id in running)
         {
-            if (_live.TryGetValue(id, out var s) && now - s.LastSeen > MaxPollGap)
+            if (_live.TryGetValue(id, out var s) && now - s.LastSeen > MaxPollGap && !s.Forgotten)
             {
                 AddStopIfLongEnough(events, id, s);
                 _live.Remove(id);
@@ -59,7 +61,12 @@ public sealed class SessionTracker
         return events;
     }
 
-    public IReadOnlyList<LiveSession> Snapshot() => _live.Select(kv => new LiveSession(kv.Key, kv.Value.Start, kv.Value.LastSeen)).ToList();
+    public void Forget(string id)
+    {
+        if (_live.TryGetValue(id, out var s)) s.Forgotten = true;
+    }
+
+    public IReadOnlyList<LiveSession> Snapshot() => _live.Where(kv => !kv.Value.Forgotten).Select(kv => new LiveSession(kv.Key, kv.Value.Start, kv.Value.LastSeen)).ToList();
 
     // Sessions the save file still held at start: the app was killed (forced restart, crash, power cut) while
     // they ran. One seen within MaxPollGap may still run, so the next poll continues or ends it; older ones end now.
@@ -87,7 +94,7 @@ public sealed class SessionTracker
     void AddStopIfLongEnough(List<SessionEvent> events, string id, Live s)
     {
         var duration = s.LastSeen - s.Start;
-        if (duration >= MinSession) events.Add(new GameStopped(id, s.Start, duration));
+        if (!s.Forgotten && duration >= MinSession) events.Add(new GameStopped(id, s.Start, duration));
     }
 }
 

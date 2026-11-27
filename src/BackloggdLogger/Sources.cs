@@ -60,7 +60,8 @@ sealed class RegistrySteamSource : ISteamSource
             }
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ArgumentException) { folder = null; }
-        if (folder is not null) _folders[appId] = folder;
+        // Not found is kept too, like a found folder, so a game without one isn't looked up on every poll.
+        _folders[appId] = folder;
         return folder;
     }
 

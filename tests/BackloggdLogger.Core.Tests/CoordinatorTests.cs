@@ -506,11 +506,25 @@ public class CoordinatorTests
     }
 
     [Fact]
-    public void Session_after_midnight_counts_for_the_start_day()
+    public void Session_across_midnight_is_split_between_the_two_days()
     {
-        var late = new DateTime(2026, 11, 8, 23, 50, 0);
-        _c.Handle(new GameStopped(Id, late, TimeSpan.FromMinutes(40)), _ => "FEZ");
-        Assert.Equal(new DateOnly(2026, 11, 8), _state.Games[Id].Sessions.Single().Date);
+        var late = new DateTime(2026, 11, 8, 23, 0, 0);
+        _c.Handle(new GameStopped(Id, late, TimeSpan.FromHours(3)), _ => "FEZ");
+        var g = _state.Games[Id];
+        Assert.Equal(new[] { (Today, 60), (Today.AddDays(1), 120) }, g.Sessions.Select(s => (s.Date, s.Minutes)));
+        Assert.Equal(180, g.LastSessionMinutes);
+        Assert.Equal(new[] { 60, 120 }, g.PendingJournal.Select(d => d.PendingMinutes));
+    }
+
+    [Fact]
+    public void Session_over_three_days_gives_each_day_its_own_minutes_and_never_more_than_a_day()
+    {
+        var late = new DateTime(2026, 11, 8, 22, 30, 20);
+        _c.Handle(new GameStopped(Id, late, new TimeSpan(1, 2, 0, 10)), _ => "FEZ");
+        var g = _state.Games[Id];
+        Assert.Equal(new[] { (Today, 90), (Today.AddDays(1), 1440), (Today.AddDays(2), 30) }, g.Sessions.Select(s => (s.Date, s.Minutes)));
+        Assert.Equal(PlayHistory.Minutes(new TimeSpan(1, 2, 0, 10)), g.TotalMinutes);
+        Assert.All(g.PendingJournal, d => Assert.InRange(d.PendingMinutes, 1, 1440));
     }
 
     [Fact]
