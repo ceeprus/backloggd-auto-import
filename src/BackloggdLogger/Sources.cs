@@ -33,8 +33,17 @@ sealed class RegistrySteamSource : ISteamSource
 
     public uint RunningAppId()
     {
+        // Steam leaves RunningAppID set when it closes or crashes while a game runs.
+        if (!SteamRunning()) return 0;
         using var key = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam");
         return key?.GetValue("RunningAppID") is int v ? unchecked((uint)v) : 0;
+    }
+
+    static bool SteamRunning()
+    {
+        var found = Process.GetProcessesByName("steam");
+        foreach (var p in found) p.Dispose();
+        return found.Length > 0;
     }
 
     readonly Dictionary<uint, string?> _folders = new();
