@@ -575,7 +575,8 @@ public static partial class JournalRequest
         if (ParseDate(s) is { } full) return full;
         s = s?.Trim();
         if (string.IsNullOrEmpty(s)) return null;
-        if (!DateTime.TryParseExact(s, ["MMM d", "MMMM d"], CultureInfo.GetCultureInfo("en-US"), DateTimeStyles.None, out var md)) return null;
+        // Parsed in a leap year: with no year given, .NET uses the current one, where "Feb 29" may not exist.
+        if (!DateTime.TryParseExact(s + " 2000", ["MMM d yyyy", "MMMM d yyyy"], CultureInfo.GetCultureInfo("en-US"), DateTimeStyles.None, out var md)) return null;
         var year = anchor.Year;
         if (anchor.Month == 12 && md.Month == 1) year++;
         else if (anchor.Month == 1 && md.Month == 12) year--;

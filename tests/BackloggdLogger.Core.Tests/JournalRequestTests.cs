@@ -544,6 +544,7 @@ public class JournalRequestTests
     [InlineData("Dec 31", "2027-01-02", "2026-12-31")]
     [InlineData("Oct 3", "2026-11-08", "2026-10-03")]
     [InlineData("2026-11-09", "2026-11-08", "2026-11-09")]
+    [InlineData("Feb 29", "2028-02-29", "2028-02-29")]
     public void A_day_with_no_year_takes_the_jobs_year_across_new_year(string s, string anchor, string expected)
     {
         Assert.Equal(DateOnly.Parse(expected), JournalRequest.ParseDay(s, DateOnly.Parse(anchor)));

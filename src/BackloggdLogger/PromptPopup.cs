@@ -1146,7 +1146,13 @@ sealed class PromptPopup : Form
     // A popup that waited for room and was never shown has no close event.
     protected override void Dispose(bool disposing)
     {
-        if (disposing) End(byUser: false);
+        if (disposing)
+        {
+            End(byUser: false);
+            // A held popup was shown once, so its keep-on-top timer still runs and would keep the form alive.
+            _frame.Dispose();
+            _keepOnTop.Dispose();
+        }
         base.Dispose(disposing);
     }
 

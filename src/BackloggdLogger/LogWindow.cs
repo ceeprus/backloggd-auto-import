@@ -11,14 +11,7 @@ sealed partial class LogWindow : ThemedWindow
     [GeneratedRegex(@"^/games/([^/]+)/?$")]
     private static partial Regex GamePath();
 
-    // The log box's save request; group 2 is the game id. JournalWindow confirms its saves with it too.
-    [GeneratedRegex(@"^https://(www\.)?backloggd\.com/api/user/\d+/log/(\d+)/?(\?.*)?$")]
-    internal static partial Regex SaveEndpoint();
-
-    [GeneratedRegex(@"^[a-z0-9][a-z0-9-]*$")]
-    private static partial Regex SlugPattern();
-
-    static bool IsSlug([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? s) => s is not null && SlugPattern().IsMatch(s);
+    static bool IsSlug([System.Diagnostics.CodeAnalysis.NotNullWhen(true)] string? s) => Journal.IsSlug(s);
 
     internal static bool IsBackloggd(Uri uri) =>
         uri.Scheme == Uri.UriSchemeHttps && uri.Host is "backloggd.com" or "www.backloggd.com";
@@ -584,7 +577,7 @@ sealed partial class LogWindow : ThemedWindow
     {
         if (_request is null || _done) return;
         if (e.Request.Method is not ("POST" or "PUT" or "PATCH")) return;
-        var m = SaveEndpoint().Match(e.Request.Uri);
+        var m = JournalRequest.SaveEndpoint().Match(e.Request.Uri);
         if (!m.Success) return;
         if (e.Response.StatusCode is < 200 or >= 300) return;
         var idMatches = _formGameId is not null
