@@ -196,6 +196,9 @@ public sealed record AppSettings
     public int PollSeconds { get; init; } = 2;
     public PopupCorner PopupCorner { get; init; } = PopupCorner.BottomRight;
 
+    // The screen popups show on, by its Windows device name. Null, or a screen that is gone: the main screen.
+    public string? PopupScreen { get; init; }
+
     // After a game closes, its play time is added to that day's session in the Backloggd journal.
     public bool AutoAddJournalTime { get; init; } = true;
 

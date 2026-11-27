@@ -74,7 +74,13 @@ sealed class PromptPopup : Form
     // Lets the UI self-check lay the stack out in a screen of its choosing. Never set by the app.
     internal static Func<Rectangle>? WorkingAreaOverride;
 
-    static Rectangle WorkingArea => WorkingAreaOverride?.Invoke() ?? Screen.PrimaryScreen!.WorkingArea;
+    // The device name of the screen picked in Settings.
+    internal static Func<string?>? ScreenName;
+
+    static Rectangle WorkingArea => WorkingAreaOverride?.Invoke() ?? PickedScreen(ScreenName?.Invoke()).WorkingArea;
+
+    internal static Screen PickedScreen(string? name) =>
+        Screen.AllScreens.FirstOrDefault(s => s.DeviceName == name) ?? Screen.PrimaryScreen!;
 
     static readonly Color Back = Theme.Surface;
 

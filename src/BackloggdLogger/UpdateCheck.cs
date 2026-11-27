@@ -66,13 +66,26 @@ sealed class UpdateCheck : IDisposable
 
     static async Task<(string? Tag, string? Url)> LatestAsync()
     {
-        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("BackloggdLogger");
+        var (tag, url, _) = await LatestReleaseAsync();
+        return (tag, url);
+    }
+
+    internal static async Task<(string? Tag, string? Url, (string Url, string Sha256)? Exe)> LatestReleaseAsync()
+    {
+        using var http = Client(TimeSpan.FromSeconds(15));
         http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
         using var doc = JsonDocument.Parse(await http.GetStringAsync(Api));
         var root = doc.RootElement;
         return (root.TryGetProperty("tag_name", out var t) ? t.GetString() : null,
-                root.TryGetProperty("html_url", out var u) ? u.GetString() : null);
+                root.TryGetProperty("html_url", out var u) ? u.GetString() : null,
+                Releases.ExeAsset(root));
+    }
+
+    internal static HttpClient Client(TimeSpan timeout)
+    {
+        var http = new HttpClient { Timeout = timeout };
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("BackloggdLogger");
+        return http;
     }
 
     public void Dispose() => _timer.Dispose();

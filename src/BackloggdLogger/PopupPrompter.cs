@@ -37,6 +37,9 @@ sealed class PopupPrompter : IPrompter
 
     public Action<string>? OpenBackloggd { get; set; }
 
+    // An update notice's button installs the new version when set; it opens the release page otherwise.
+    public Action<string>? InstallUpdate { get; set; }
+
     // A Mark as choice the close popup was left with: the app saves it by itself.
     public Action<string, StatusPick>? KeepPick { get; set; }
 
@@ -191,7 +194,8 @@ sealed class PopupPrompter : IPrompter
                 if (m.Action == MissedAction.OpenLog && m.GameId is { } game) buttons.Add(("Open log", () => Run(OpenLog, game)));
                 else if (m.Action == MissedAction.OpenFolder && m.ActionPath is { } file) buttons.Add(("Open folder", () => Run(OpenFolder, file)));
                 else if (m.Action == MissedAction.SignIn) buttons.Add(("Sign in", () => Run(OpenBackloggd, "")));
-                else if (m.Action == MissedAction.OpenUrl && m.ActionPath is { } url) buttons.Add(("Download", () => Run(SettingsForm.OpenUrl, Releases.SafeUrl(url))));
+                else if (m.Action == MissedAction.OpenUrl && m.ActionPath is { } url)
+                    buttons.Add(InstallUpdate is { } install ? ("Update", () => Run(install, url)) : ("Download", () => Run(SettingsForm.OpenUrl, Releases.SafeUrl(url))));
                 buttons.Add(("Close", null));
                 popup = new PromptPopup(m.Title, m.Body, buttons, again ? null : NoticeTimeout, corner: settings.PopupCorner, notice: true, onEnded: ended);
                 break;

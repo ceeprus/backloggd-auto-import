@@ -89,6 +89,7 @@ public class SettingsTests : IDisposable
             {
                 MinSessionSeconds = 60, StartPopupSeconds = 20, ClosePopupSeconds = 30, AskOnStart = false, AskOnClose = false,
                 WindowDelayAfterGameSeconds = 0, PollSeconds = 5, PopupCorner = PopupCorner.TopRight, AutoAddJournalTime = true, DetectEmulators = false,
+                PopupScreen = @"\\.\DISPLAY2",
             }
         };
         store.Save(state);

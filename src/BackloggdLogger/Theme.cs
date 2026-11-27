@@ -346,6 +346,12 @@ sealed class ThemedInput : Control
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public int FixedWidth { get; set; }
 
+    // Set for a number: up and down arrows at the right edge, and the Up and Down keys, call it with +1 or -1.
+    [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+    public Action<int>? Step { get; set; }
+
+    int ArrowsWidth => Step is null ? 0 : Theme.Px(this, 18);
+
     public ThemedInput(string accessibleName, string cue = "")
     {
         SetStyle(ControlStyles.UserPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.AllPaintingInWmPaint | ControlStyles.ResizeRedraw, true);
@@ -355,23 +361,30 @@ sealed class ThemedInput : Control
         Box.AccessibleName = accessibleName;
         Box.GotFocus += (_, _) => Invalidate();
         Box.LostFocus += (_, _) => Invalidate();
+        Box.KeyDown += (_, e) =>
+        {
+            if (Step is null || e.KeyCode is not (Keys.Up or Keys.Down)) return;
+            Step(e.KeyCode == Keys.Up ? 1 : -1);
+            e.Handled = e.SuppressKeyPress = true;
+        };
         Controls.Add(Box);
         TabStop = false;
         AutoSize = true;
     }
 
     public override Size GetPreferredSize(Size proposedSize) =>
-        new(FixedWidth > 0 ? Theme.Px(this, FixedWidth) : Math.Max(proposedSize.Width, Theme.Px(this, 120)), Box.PreferredHeight + Theme.Px(this, 14));
+        new((FixedWidth > 0 ? Theme.Px(this, FixedWidth) : Math.Max(proposedSize.Width, Theme.Px(this, 120))) + ArrowsWidth, Box.PreferredHeight + Theme.Px(this, 14));
 
     protected override void OnLayout(LayoutEventArgs levent)
     {
         base.OnLayout(levent);
         var x = Theme.Px(this, 10);
-        Box.SetBounds(x, (Height - Box.Height) / 2, Math.Max(1, Width - x * 2), Box.Height);
+        Box.SetBounds(x, (Height - Box.Height) / 2, Math.Max(1, Width - x * 2 - ArrowsWidth), Box.Height);
     }
 
     protected override void OnMouseDown(MouseEventArgs e)
     {
+        if (Step is not null && e.Button == MouseButtons.Left && e.X >= Width - ArrowsWidth) Step(e.Y < Height / 2 ? 1 : -1);
         Box.Focus();
         base.OnMouseDown(e);
     }
@@ -398,6 +411,19 @@ sealed class ThemedInput : Control
             using var pen = new Pen(_invalid ? Theme.Danger : Theme.BorderStrong);
             g.DrawPath(pen, path);
         }
+        if (Step is not null) PaintArrows(g);
+    }
+
+    void PaintArrows(Graphics g)
+    {
+        var w = Theme.Px(this, 4);
+        var h = Theme.Px(this, 3);
+        var cx = Width - ArrowsWidth / 2f - Theme.Px(this, 2);
+        var gap = Theme.Px(this, 2);
+        var mid = Height / 2f;
+        using var brush = new SolidBrush(Theme.TextMuted);
+        g.FillPolygon(brush, new[] { new PointF(cx - w, mid - gap), new PointF(cx + w, mid - gap), new PointF(cx, mid - gap - h * 1.4f) });
+        g.FillPolygon(brush, new[] { new PointF(cx - w, mid + gap), new PointF(cx + w, mid + gap), new PointF(cx, mid + gap + h * 1.4f) });
     }
 }
 

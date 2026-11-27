@@ -8,9 +8,10 @@ sealed class SettingsForm : ThemedWindow
 {
     // The unit after the input ("seconds") is where an invalid value's fix is written, so the
     // window keeps one height.
-    sealed class NumberRow(string name, SettingRange range, ThemedInput input, Label unit)
+    sealed class NumberRow(string name, SettingRange range, ThemedInput input, Label unit, string unitText)
     {
         public string Name { get; } = name;
+        public string UnitText { get; } = unitText;
         public SettingRange Range { get; } = range;
         public ThemedInput Input { get; } = input;
         public Label Unit { get; } = unit;
@@ -36,6 +37,13 @@ sealed class SettingsForm : ThemedWindow
     readonly ThemedCheck _askClose = new("Ask when a game closes");
     readonly ThemedRadio _bottomRight = new("Bottom right");
     readonly ThemedRadio _topRight = new("Top right");
+    readonly NumberRow? _screen;
+
+    // Screens numbered the way Windows names them (DISPLAY1, DISPLAY2, ...).
+    static readonly Screen[] Screens = Screen.AllScreens.OrderBy(s => DisplayNumber(s.DeviceName)).ThenBy(s => s.Bounds.X).ToArray();
+
+    static int DisplayNumber(string device) =>
+        int.TryParse(new string(device.Reverse().TakeWhile(char.IsAsciiDigit).Reverse().ToArray()), out var n) ? n : int.MaxValue;
     readonly ThemedCheck _detectEmulators = new("Detect emulators automatically");
     readonly ThemedCheck _detectLaunchers = new(DetectLaunchersText);
     readonly ThemedCheck _journal = new("Add play time to the journal automatically");
@@ -75,6 +83,7 @@ sealed class SettingsForm : ThemedWindow
         var corner = Flow(_bottomRight, _topRight);
         corner.AccessibleName = "Corner";
         Labeled("Corner", corner);
+        if (Screens.Length > 1) _screen = Number("Screen", new SettingRange(1, Screens.Length), $"of {Screens.Length}");
 
         Group("Detection");
         _minSession = Number("Count a session after", SettingRanges.MinSession);
@@ -324,28 +333,33 @@ sealed class SettingsForm : ThemedWindow
         return l;
     }
 
-    NumberRow Number(string label, SettingRange range)
+    NumberRow Number(string label, SettingRange range, string unitText = Unit)
     {
         var input = new ThemedInput(label) { FixedWidth = 64 };
         input.Box.MaxLength = 4;
         input.Box.KeyPress += (_, e) => { if (!char.IsControl(e.KeyChar) && !char.IsAsciiDigit(e.KeyChar)) e.Handled = true; };
         input.Margin = new Padding(Theme.FocusPad, Theme.S1, Theme.S2, Theme.S1);
-        var unit = new Label { Text = Unit, ForeColor = Theme.TextMuted, AutoSize = true, Margin = new Padding(0) };
+        var unit = new Label { Text = unitText, ForeColor = Theme.TextMuted, AutoSize = true, Margin = new Padding(0) };
         Labeled(label, input, unit);
 
-        var n = new NumberRow(label, range, input, unit);
+        var n = new NumberRow(label, range, input, unit, unitText);
         input.Box.TextChanged += (_, _) => ShowError(n);
+        input.Step = d =>
+        {
+            n.Set(range.Clamp((n.Value ?? range.Clamp(0)) + d));
+            input.Box.SelectionStart = input.Box.TextLength;
+        };
         return n;
     }
 
     const string Unit = "seconds";
 
-    IEnumerable<NumberRow> Numbers => new[] { _startSeconds, _closeSeconds, _minSession, _poll, _delay };
+    IEnumerable<NumberRow> Numbers => new[] { _startSeconds, _closeSeconds, _screen, _minSession, _poll, _delay }.OfType<NumberRow>();
 
     void ShowError(NumberRow n)
     {
         var message = n.Range.Check(n.Input.Box.Text);
-        n.Unit.Text = message ?? Unit;
+        n.Unit.Text = message ?? n.UnitText;
         n.Unit.ForeColor = message is null ? Theme.TextMuted : Theme.Danger;
         n.Input.Box.AccessibleDescription = message;
         n.Input.Invalid = message is not null;
@@ -360,6 +374,7 @@ sealed class SettingsForm : ThemedWindow
         _closeSeconds.Set(s.ClosePopupSeconds);
         _bottomRight.Checked = s.PopupCorner == PopupCorner.BottomRight;
         _topRight.Checked = s.PopupCorner == PopupCorner.TopRight;
+        _screen?.Set(Array.IndexOf(Screens, PromptPopup.PickedScreen(s.PopupScreen)) + 1);
         _minSession.Set(s.MinSessionSeconds);
         _poll.Set(s.PollSeconds);
         _delay.Set(s.WindowDelayAfterGameSeconds);
@@ -392,6 +407,8 @@ sealed class SettingsForm : ThemedWindow
             StartPopupSeconds = _startSeconds.Value!.Value,
             ClosePopupSeconds = _closeSeconds.Value!.Value,
             PopupCorner = _topRight.Checked ? PopupCorner.TopRight : PopupCorner.BottomRight,
+            // The main screen is stored as no pick, so popups follow it if Windows makes another screen main.
+            PopupScreen = _screen?.Value is { } screen ? (Screens[screen - 1].Primary ? null : Screens[screen - 1].DeviceName) : _initial.PopupScreen,
             MinSessionSeconds = _minSession.Value!.Value,
             PollSeconds = _poll.Value!.Value,
             WindowDelayAfterGameSeconds = _delay.Value!.Value,

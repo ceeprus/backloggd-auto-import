@@ -43,7 +43,9 @@ sealed class TrayContext : ApplicationContext
             OpenFolder = ShowInFolder,
             OpenBackloggd = _ => _windows!.OpenBrowse(),
             KeepPick = KeepPickFor,
+            InstallUpdate = url => _ = InstallUpdateAsync(url),
         };
+        PromptPopup.ScreenName = () => _state.Settings.PopupScreen;
         _state.MissedPopups.Changed += MissedChanged;
         _windows = new LogWindowHost(_state, Save, () => _watcher?.AnyGameRunning ?? false);
         _coordinator = new Coordinator(_state, Save, _prompter, _windows, () => DateOnly.FromDateTime(DateTime.Today));
@@ -144,6 +146,42 @@ sealed class TrayContext : ApplicationContext
 
     internal static string StartupFailedNotice(bool turningOn) =>
         $"Couldn't turn {(turningOn ? "on" : "off")} Start with Windows. Windows blocked the change. Try again later.";
+
+    bool _installing;
+
+    // Downloads, swaps and restarts. A running game would lose its session to the restart, so it waits for none.
+    async Task InstallUpdateAsync(string url)
+    {
+        if (_installing) return;
+        if (_watcher.AnyGameRunning)
+        {
+            _prompter.Notify(UpdateWaitsText);
+            return;
+        }
+        _installing = true;
+        try
+        {
+            await SelfUpdate.DownloadAsync();
+            if (_watcher.AnyGameRunning)
+            {
+                SelfUpdate.Discard();
+                _prompter.Notify(UpdateWaitsText);
+                return;
+            }
+            SelfUpdate.Swap();
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(Environment.ProcessPath!, Program.UpdatedArg) { UseShellExecute = false });
+            Shutdown();
+        }
+        catch (Exception ex)
+        {
+            Log.Write("update", "install failed: " + ex.Message);
+            SelfUpdate.Discard();
+            SettingsForm.OpenUrl(Releases.SafeUrl(url));
+        }
+        finally { _installing = false; }
+    }
+
+    internal const string UpdateWaitsText = "Close the game first. Updating restarts the app, which would end the game's session.";
 
     static void ShowInFolder(string file)
     {

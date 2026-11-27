@@ -31,4 +31,37 @@ public class ReleasesTests
     [InlineData(null, false)]
     public void Only_this_repos_release_pages_are_opened(string? url, bool kept) =>
         Assert.Equal(kept ? url : Releases.Page, Releases.SafeUrl(url));
+
+    const string Hash = "02377ff87fa66d1cd21d6c2e70d5eee1403b026ada80adf4dc7ab05e4cacd277";
+
+    static System.Text.Json.JsonElement Release(string name, string url, string? digest) =>
+        System.Text.Json.JsonDocument.Parse(System.Text.Json.JsonSerializer.Serialize(new
+        {
+            assets = new object[] { new { name = "notes.txt", browser_download_url = url, digest }, new { name, browser_download_url = url, digest } },
+        })).RootElement;
+
+    [Fact]
+    public void The_exe_and_its_hash_are_read_from_the_release()
+    {
+        var url = "https://github.com/ceeprus/backloggd-auto-import/releases/download/v1.4.5/BackloggdLogger.exe";
+        Assert.Equal((url, Hash), Releases.ExeAsset(Release("BackloggdLogger.exe", url, "sha256:" + Hash.ToUpperInvariant())));
+    }
+
+    [Theory]
+    [InlineData("Other.exe", "https://github.com/ceeprus/backloggd-auto-import/releases/download/v1/BackloggdLogger.exe", "sha256:" + Hash)]
+    [InlineData("BackloggdLogger.exe", "https://evil.example/BackloggdLogger.exe", "sha256:" + Hash)]
+    [InlineData("BackloggdLogger.exe", "https://github.com/ceeprus/backloggd-auto-import/releases/download/v1/BackloggdLogger.exe", null)]
+    [InlineData("BackloggdLogger.exe", "https://github.com/ceeprus/backloggd-auto-import/releases/download/v1/BackloggdLogger.exe", "md5:abc")]
+    [InlineData("BackloggdLogger.exe", "https://github.com/ceeprus/backloggd-auto-import/releases/download/v1/BackloggdLogger.exe", "sha256:zz377ff87fa66d1cd21d6c2e70d5eee1403b026ada80adf4dc7ab05e4cacd277")]
+    public void A_release_without_a_checkable_exe_from_this_repo_gives_none(string name, string url, string? digest) =>
+        Assert.Null(Releases.ExeAsset(Release(name, url, digest)));
+
+    [Fact]
+    public void Only_bytes_with_the_listed_hash_match()
+    {
+        var data = "hello"u8.ToArray();
+        var hash = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824";
+        Assert.True(Releases.HashMatches(data, hash));
+        Assert.False(Releases.HashMatches("hellp"u8.ToArray(), hash));
+    }
 }
