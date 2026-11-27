@@ -303,6 +303,7 @@
       btn.click();
       if (!(await waitFor(() => shownMonth() !== shown, 4000))) { fail('month'); return; }
     }
+    if (shownMonth() !== target) { fail('month'); return; }
 
     // Events can be drawn after the cells and the calendar shows no loading sign, so it must stop
     // changing first, and an empty day is looked at twice.
