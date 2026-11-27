@@ -19,6 +19,19 @@ public static partial class GameNames
     [GeneratedRegex(@"(?i)(?:\s+-\s+|\s+)v\d+(?:\.\d+)*\s*$")]
     private static partial Regex TrailingVersion();
 
+    [GeneratedRegex(@"--\d+$")]
+    private static partial Regex SlugCopy();
+
+    static readonly HashSet<string> SmallWords = ["a", "an", "and", "as", "at", "for", "in", "of", "on", "or", "the", "to"];
+
+    // A readable stand-in for a game matched before its Backloggd title was stored: "the-legend-of-zelda--1"
+    // shows as "The Legend of Zelda" until the game's page is opened again and the real title is saved.
+    public static string FromSlug(string slug)
+    {
+        var words = SlugCopy().Replace(slug, "").Split('-', StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(' ', words.Select((w, i) => i > 0 && SmallWords.Contains(w) ? w : char.ToUpperInvariant(w[0]) + w[1..]));
+    }
+
     public static string SearchQuery(string name) =>
         Whitespace().Replace(name.Replace("™", "").Replace("®", "").Replace("©", ""), " ").Trim();
 

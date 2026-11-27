@@ -5,6 +5,15 @@ namespace BackloggdLogger.Core.Tests;
 public class GameNamesTests
 {
     [Theory]
+    [InlineData("hades", "Hades")]
+    [InlineData("the-legend-of-zelda-the-wind-waker", "The Legend of Zelda the Wind Waker")]
+    [InlineData("doom--1", "Doom")]
+    [InlineData("half-life-2", "Half Life 2")]
+    [InlineData("a-hat-in-time", "A Hat in Time")]
+    public void FromSlug(string slug, string expected) =>
+        Assert.Equal(expected, GameNames.FromSlug(slug));
+
+    [Theory]
     [InlineData("Hollow Knight™", "Hollow Knight")]
     [InlineData("Tom Clancy's Rainbow Six® Siege", "Tom Clancy's Rainbow Six Siege")]
     [InlineData("  FEZ  ", "FEZ")]

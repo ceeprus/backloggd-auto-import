@@ -1150,7 +1150,7 @@ sealed class TrackedGamesForm : ThemedWindow
         return Path.GetFileName(g.ExePath ?? g.EmulatorExe ?? g.Id);
     }
 
-    static string? Matched(GameRecord g) => g.BackloggdTitle ?? g.Slug;
+    static string? Matched(GameRecord g) => g.BackloggdTitle ?? (g.Slug is { } s ? GameNames.FromSlug(s) : null);
 
     static string Cell(GameRecord g, TrackedColumn c) => c switch
     {
