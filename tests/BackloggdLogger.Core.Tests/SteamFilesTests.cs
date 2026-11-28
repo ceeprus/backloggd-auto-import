@@ -49,4 +49,11 @@ public class SteamFilesTests
 
     [Fact]
     public void InstallDir_returns_null_without_it() => Assert.Null(SteamFiles.InstallDir("\"AppState\" { \"name\" \"FEZ\" }"));
+
+    [Theory]
+    [InlineData(3892846606u, true)]
+    [InlineData(0x80000000u, true)]
+    [InlineData(1147860u, false)]
+    [InlineData(0u, false)]
+    public void Shortcut_ids_have_the_high_bit(uint appId, bool shortcut) => Assert.Equal(shortcut, GameIds.IsSteamShortcut(appId));
 }

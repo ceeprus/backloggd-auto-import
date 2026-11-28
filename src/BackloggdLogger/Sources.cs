@@ -36,7 +36,8 @@ sealed class RegistrySteamSource : ISteamSource
         // Steam leaves RunningAppID set when it closes or crashes while a game runs.
         if (!SteamRunning()) return 0;
         using var key = Registry.CurrentUser.OpenSubKey(@"Software\Valve\Steam");
-        return key?.GetValue("RunningAppID") is int v ? unchecked((uint)v) : 0;
+        var id = key?.GetValue("RunningAppID") is int v ? unchecked((uint)v) : 0;
+        return GameIds.IsSteamShortcut(id) ? 0 : id;
     }
 
     static bool SteamRunning()

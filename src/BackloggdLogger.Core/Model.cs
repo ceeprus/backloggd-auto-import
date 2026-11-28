@@ -402,6 +402,10 @@ public sealed class AppState
 public static class GameIds
 {
     public static string Steam(uint appId) => $"steam:{appId}";
+
+    // Steam reports a non-Steam shortcut it launched by the shortcut's id, which always has the
+    // high bit set; real app ids never do. The shortcut's exe is found by the exe and emulator checks.
+    public static bool IsSteamShortcut(uint appId) => (appId & 0x80000000) != 0;
     public static string Exe(string path) => "exe:" + path.ToLowerInvariant();
     public static bool IsSteam(string id) => id.StartsWith("steam:", StringComparison.Ordinal);
 
